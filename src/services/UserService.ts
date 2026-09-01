@@ -4,9 +4,10 @@ import { User } from '../entities/User';
 import { UserRepository } from '../repositories/UserRepository';
 import { IUser, IUserCredentials } from '../../@types/index';
 import { isValidEmail, isValidCPF, isStrongPassword } from '../utils/validators';
+import { getJwtSecret } from '../config/security';
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
-const JWT_SECRET  = process.env.JWT_SECRET ?? 'fallback_secret';
+const JWT_SECRET = getJwtSecret();
 const JWT_OPTIONS: SignOptions = { expiresIn: '1d' };
 
 export class UserService {

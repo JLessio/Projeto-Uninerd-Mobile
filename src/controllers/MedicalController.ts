@@ -2,25 +2,18 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { Pool } from 'mysql2/promise';
 import { MedicalRepository } from '../repositories/MedicalRepository';
+import { AppointmentService, BusinessRuleError } from '../services/AppointmentService';
 
 export class MedicalController {
   private medicalRepository: MedicalRepository;
+  private appointmentService: AppointmentService;
 
   constructor(private db: Pool) {
     this.medicalRepository = new MedicalRepository(db);
+    this.appointmentService = new AppointmentService(this.medicalRepository);
   }
 
   // 1. BUSCAR MÉDICOS
-  private normalizeAppointmentDate(date: unknown): string | null {
-    if (typeof date !== 'string' || !date.trim()) return null;
-
-    const match = date.trim().match(/^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}:\d{2})(?::(\d{2}))?)?/);
-    if (!match) return null;
-
-    const [, day, hourMinute = '00:00', seconds = '00'] = match;
-    return `${day} ${hourMinute}:${seconds}`;
-  }
-
   private normalizeAppointmentType(type: unknown): string {
     return type === 'exame' ? 'exame' : 'consulta';
   }
@@ -161,6 +154,35 @@ export class MedicalController {
     }
   };
 
+  public getMySchedule = async (req: Request, res: Response) => {
+    if (req.user?.nivel !== 'medico') return res.status(403).json({ message: 'Apenas médicos podem configurar horários.' });
+    try {
+      const slots = await this.medicalRepository.findDoctorSchedule(req.user.id);
+      return res.json({ doctorId: req.user.id, slots });
+    } catch (error) {
+      console.error('Erro ao buscar horários do médico:', error);
+      return res.status(500).json({ message: 'Erro ao buscar horários do médico.' });
+    }
+  };
+
+  public updateMySchedule = async (req: Request, res: Response) => {
+    if (req.user?.nivel !== 'medico') return res.status(403).json({ message: 'Apenas médicos podem configurar horários.' });
+    const rawSlots = Array.isArray(req.body?.slots) ? req.body.slots : null;
+    if (!rawSlots) return res.status(400).json({ message: 'Informe a lista de horários.' });
+    const slots = rawSlots.map((slot: { weekday?: unknown; time?: unknown }) => ({ weekday: Number(slot.weekday), time: String(slot.time ?? '') }));
+    const valid = slots.every((slot: { weekday: number; time: string }) => Number.isInteger(slot.weekday)
+      && slot.weekday >= 0 && slot.weekday <= 6 && /^([01]\d|2[0-3]):[0-5]\d$/.test(slot.time));
+    const unique = new Set(slots.map((slot: { weekday: number; time: string }) => `${slot.weekday}-${slot.time}`));
+    if (!valid || unique.size !== slots.length) return res.status(400).json({ message: 'A lista possui horários inválidos ou repetidos.' });
+    try {
+      await this.medicalRepository.replaceDoctorSchedule(req.user.id, slots);
+      return res.json({ doctorId: req.user.id, slots });
+    } catch (error) {
+      console.error('Erro ao salvar horários do médico:', error);
+      return res.status(500).json({ message: 'Erro ao salvar horários do médico.' });
+    }
+  };
+
   // 2. BUSCAR ESPECIALIDADES
   public getSpecialties = async (req: Request, res: Response) => {
     try {
@@ -223,6 +245,45 @@ export class MedicalController {
   };
 
   // 3. BUSCAR TODOS OS AGENDAMENTOS
+  public getDoctorAvailability = async (req: Request, res: Response) => {
+    try {
+      const doctorId = Number(req.params.id);
+      const date = String(req.query.date ?? '');
+      const excludeId = req.query.excludeId ? Number(req.query.excludeId) : undefined;
+      if (!Number.isInteger(doctorId) || doctorId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)
+        || (excludeId !== undefined && (!Number.isInteger(excludeId) || excludeId <= 0))) {
+        return res.status(400).json({ message: 'Médico ou data inválidos.' });
+      }
+
+      const doctor = await this.medicalRepository.findDoctorById(doctorId);
+      if (!doctor) return res.status(404).json({ message: 'Médico não encontrado.' });
+
+      if (excludeId) {
+        const appointment = await this.medicalRepository.findAppointmentById(excludeId);
+        if (!appointment || Number(appointment.doctorId) !== doctorId || !this.canAccessAppointment(appointment, req.user)) {
+          return res.status(403).json({ message: 'Você não pode ignorar este agendamento.' });
+        }
+      }
+
+      const weekday = new Date(`${date}T12:00:00`).getDay();
+      const configuredTimes = await this.medicalRepository.findConfiguredTimes(doctorId, weekday);
+      const occupiedTimes = new Set(await this.medicalRepository.findOccupiedTimes(doctorId, date, excludeId));
+      const now = new Date();
+      const slots = configuredTimes
+        .filter((time) => {
+          if (occupiedTimes.has(time)) return false;
+          const slotDate = new Date(`${date}T${time}:00`);
+          return slotDate.getTime() > now.getTime();
+        });
+
+      return res.json({ doctorId, date, slots });
+    } catch (error) {
+      console.error('Erro ao buscar horários disponíveis:', error);
+      return res.status(500).json({ message: 'Erro ao buscar horários disponíveis.' });
+    }
+  };
+
+  // 3. BUSCAR TODOS OS AGENDAMENTOS
   public getAppointments = async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -251,7 +312,7 @@ export class MedicalController {
       }
 
       if (!this.canAccessAppointment(appointment, req.user)) {
-        return res.status(403).json({ message: 'VocÃª nÃ£o tem permissÃ£o para acessar este agendamento.' });
+        return res.status(403).json({ message: 'Você não tem permissão para acessar este agendamento.' });
       }
 
       res.json(appointment);
@@ -267,22 +328,22 @@ export class MedicalController {
     try {
       const { doctorId, date, type } = req.body;
       const patientId = req.user?.nivel === 'paciente' ? req.user.id : req.body.patientId || req.user?.id;
-      const normalizedDate = this.normalizeAppointmentDate(date);
       const normalizedType = this.normalizeAppointmentType(type);
+      const validated = await this.appointmentService.validateAppointment({ doctorId, patientId, date });
 
-      if (!doctorId || !normalizedDate || !patientId) {
-        return res.status(400).json({ message: 'Médico, paciente e data são obrigatórios.' });
-      }
-
-      const existing = await this.medicalRepository.findExistingAppointment(doctorId, normalizedDate);
-      if (existing) {
-        return res.status(409).json({ message: 'Este horário já está ocupado.' });
-      }
-
-      await this.medicalRepository.createAppointment(patientId, doctorId, normalizedDate, normalizedType, 'AGENDADO');
+      await this.medicalRepository.createAppointment(
+        validated.patientId,
+        validated.doctorId,
+        validated.date,
+        normalizedType,
+        'AGENDADO',
+      );
 
       res.status(201).json({ message: 'Agendamento criado com sucesso' });
     } catch (error) {
+      if (error instanceof BusinessRuleError) {
+        return res.status(error.status).json({ message: error.message });
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ Erro no INSERT:', errorMessage);
       res.status(500).json({ message: 'Erro ao criar agendamento no banco' });
@@ -294,32 +355,34 @@ export class MedicalController {
     try {
       const { id } = req.params;
       const { doctorId, date, type, status } = req.body;
-      const normalizedDate = this.normalizeAppointmentDate(date);
       const normalizedType = this.normalizeAppointmentType(type);
 
       const appointment = await this.medicalRepository.findAppointmentById(Number(id));
       if (!appointment) {
-        return res.status(404).json({ message: 'Agendamento nÃ£o encontrado.' });
+        return res.status(404).json({ message: 'Agendamento não encontrado.' });
       }
 
       if (!this.canAccessAppointment(appointment, req.user)) {
-        return res.status(403).json({ message: 'VocÃª nÃ£o tem permissÃ£o para editar este agendamento.' });
+        return res.status(403).json({ message: 'Você não tem permissão para editar este agendamento.' });
       }
 
       if (req.user?.nivel === 'medico' && Number(doctorId) !== Number(req.user.id)) {
-        return res.status(403).json({ message: 'VocÃª nÃ£o tem permissÃ£o para transferir este agendamento.' });
+        return res.status(403).json({ message: 'Você não tem permissão para transferir este agendamento.' });
       }
 
-      if (!doctorId || !normalizedDate) {
-        return res.status(400).json({ message: 'MÃ©dico e data sÃ£o obrigatÃ³rios.' });
-      }
-
-      const existing = await this.medicalRepository.findExistingAppointment(doctorId, normalizedDate, Number(id));
-      if (existing) {
-        return res.status(409).json({ message: 'Este horário já está ocupado.' });
-      }
-
-      const affectedRows = await this.medicalRepository.updateAppointment(Number(id), doctorId, normalizedDate, normalizedType, status);
+      const validated = await this.appointmentService.validateAppointment({
+        doctorId,
+        patientId: appointment.patientId,
+        date,
+        excludeId: Number(id),
+      });
+      const affectedRows = await this.medicalRepository.updateAppointment(
+        Number(id),
+        validated.doctorId,
+        validated.date,
+        normalizedType,
+        status || String(appointment.status),
+      );
 
       if (affectedRows === 0) {
         return res.status(404).json({ message: 'Agendamento não encontrado.' });
@@ -327,6 +390,9 @@ export class MedicalController {
 
       res.json({ message: 'Agendamento atualizado com sucesso!' });
     } catch (error) {
+      if (error instanceof BusinessRuleError) {
+        return res.status(error.status).json({ message: error.message });
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Erro ao atualizar agendamento:', errorMessage);
       res.status(500).json({ message: 'Erro ao atualizar agendamento.' });
@@ -339,11 +405,11 @@ export class MedicalController {
       const { id } = req.params;
       const appointment = await this.medicalRepository.findAppointmentById(Number(id));
       if (!appointment) {
-        return res.status(404).json({ message: 'Agendamento nÃ£o encontrado.' });
+        return res.status(404).json({ message: 'Agendamento não encontrado.' });
       }
 
       if (!this.canAccessAppointment(appointment, req.user)) {
-        return res.status(403).json({ message: 'VocÃª nÃ£o tem permissÃ£o para cancelar este agendamento.' });
+        return res.status(403).json({ message: 'Você não tem permissão para cancelar este agendamento.' });
       }
 
       const affectedRows = await this.medicalRepository.deleteAppointment(Number(id));

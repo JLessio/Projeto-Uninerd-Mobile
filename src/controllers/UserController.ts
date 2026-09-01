@@ -3,7 +3,9 @@ import { UserService } from '../services/UserService'; // Corrigido: Removido es
 import { IUser, IUserCredentials } from '../../@types/index';
 
 export class UserController {
-  public constructor(private readonly userService: UserService) {}
+  public constructor(
+    private readonly userService: Pick<UserService, 'register' | 'update' | 'getById' | 'login' | 'delete'>,
+  ) {}
 
   public register = async (req: Request, res: Response): Promise<void> => {
     try {

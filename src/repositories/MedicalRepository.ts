@@ -76,6 +76,44 @@ export class MedicalRepository {
     return totalRows[0].count;
   }
 
+  public async findDoctorSchedule(doctorId: number): Promise<Array<{ weekday: number; time: string }>> {
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT dia_semana AS weekday, TIME_FORMAT(horario, '%H:%i') AS time
+       FROM horarios_medicos WHERE id_medico = ? ORDER BY dia_semana, horario`,
+      [doctorId],
+    );
+    return rows.map((row) => ({ weekday: Number(row.weekday), time: String(row.time) }));
+  }
+
+  public async replaceDoctorSchedule(doctorId: number, slots: Array<{ weekday: number; time: string }>): Promise<void> {
+    const connection = await this.db.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.execute('DELETE FROM horarios_medicos WHERE id_medico = ?', [doctorId]);
+      for (const slot of slots) {
+        await connection.execute(
+          'INSERT INTO horarios_medicos (id_medico, dia_semana, horario) VALUES (?, ?, ?)',
+          [doctorId, slot.weekday, `${slot.time}:00`],
+        );
+      }
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  public async findConfiguredTimes(doctorId: number, weekday: number): Promise<string[]> {
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT TIME_FORMAT(horario, '%H:%i') AS time
+       FROM horarios_medicos WHERE id_medico = ? AND dia_semana = ? ORDER BY horario`,
+      [doctorId, weekday],
+    );
+    return rows.map((row) => String(row.time));
+  }
+
   // Specialties
   public async findSpecialties(): Promise<RowDataPacket[]> {
     const [rows] = await this.db.execute<RowDataPacket[]>(
@@ -225,6 +263,38 @@ export class MedicalRepository {
 
     const [existing] = await this.db.execute<RowDataPacket[]>(query, params);
     return existing.length > 0 ? existing[0] : null;
+  }
+
+  public async findOccupiedTimes(doctorId: number, date: string, excludeId?: number): Promise<string[]> {
+    const excludeClause = excludeId ? ' AND id <> ?' : '';
+    const params: (number | string)[] = [doctorId, date];
+    if (excludeId) params.push(excludeId);
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT DATE_FORMAT(data_consulta, '%H:%i') AS time
+       FROM agendamentos
+       WHERE id_medico = ? AND DATE(data_consulta) = ? AND status <> 'CANCELADO'${excludeClause}
+       ORDER BY data_consulta`,
+      params,
+    );
+    return rows.map((row) => String(row.time));
+  }
+
+  public async findPatientAppointmentAtDate(patientId: number, date: string, excludeId?: number): Promise<RowDataPacket | null> {
+    let query = "SELECT id FROM agendamentos WHERE id_usuario = ? AND data_consulta = ? AND status <> 'CANCELADO'";
+    const params: number[] | (number | string)[] = [patientId, date];
+
+    if (excludeId) {
+      query += ' AND id <> ?';
+      params.push(excludeId);
+    }
+
+    const [rows] = await this.db.execute<RowDataPacket[]>(query, params);
+    return rows.length > 0 ? rows[0] : null;
+  }
+
+  public async findUserRole(id: number): Promise<string | null> {
+    const [rows] = await this.db.execute<RowDataPacket[]>('SELECT nivel FROM usuarios WHERE id = ?', [id]);
+    return rows.length > 0 ? String(rows[0].nivel) : null;
   }
 
   public async createAppointment(patientId: number, doctorId: number, date: string, type: string, status: string): Promise<number> {

@@ -11,6 +11,9 @@ const controller = new MedicalController(db);
  */
 router.get('/doctors', authMiddleware, controller.getDoctors);
 router.post('/doctors', authMiddleware, controller.createDoctor);
+router.get('/doctors/me/schedule', authMiddleware, controller.getMySchedule);
+router.put('/doctors/me/schedule', authMiddleware, controller.updateMySchedule);
+router.get('/doctors/:id/availability', authMiddleware, controller.getDoctorAvailability);
 router.get('/doctors/:id', authMiddleware, controller.getDoctorById);
 router.put('/doctors/:id', authMiddleware, controller.updateDoctor);
 router.delete('/doctors/:id', authMiddleware, controller.deleteDoctor);

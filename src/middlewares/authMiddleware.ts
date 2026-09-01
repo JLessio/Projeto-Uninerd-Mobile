@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import type { IUser } from '../../@types/index';
+import { getJwtSecret } from '../config/security';
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'fallback_secret';
+const JWT_SECRET = getJwtSecret();
 
 interface JwtPayload {
   id:    number;
-  nivel: string;
+  nivel: IUser['nivel'];
 }
 
 const extractToken = (req: Request): string | null => {
@@ -23,6 +25,9 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    if (!Number.isInteger(decoded.id) || decoded.id <= 0 || !['medico', 'paciente'].includes(decoded.nivel)) {
+      throw new Error('Token sem identidade válida.');
+    }
     req.user = { id: decoded.id, nivel: decoded.nivel };
     next();
   } catch {
