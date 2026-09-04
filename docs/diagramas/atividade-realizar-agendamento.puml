@@ -1,0 +1,47 @@
+@startuml
+title Projeto Uninerd — Atividade: Realizar Agendamento
+skinparam shadowing false
+
+start
+:Paciente abre "Novo agendamento";
+:Sistema consulta médicos disponíveis;
+
+if (Existem médicos cadastrados?) then (Sim)
+  :Paciente escolhe um médico;
+  :Sistema apresenta perfil profissional;
+  note right
+    Foto, nome, especialidade, CRM/UF,
+    biografia e local de atendimento.
+    Dados sensíveis não são exibidos.
+  end note
+  :Sistema consulta a agenda dos próximos 7 dias;
+  :Remove dias passados ou sem horários vagos;
+
+  if (Existe dia com disponibilidade?) then (Sim)
+    :Paciente escolhe o dia;
+    :Sistema apresenta somente horários vagos;
+    :Paciente escolhe horário e tipo de atendimento;
+    :Paciente confirma o agendamento;
+    :API valida token e identidade do paciente;
+    :API valida médico, agenda configurada e data futura;
+    :API verifica conflitos do médico e do paciente;
+
+    if (Horário continua disponível?) then (Sim)
+      :Persistir agendamento no MySQL;
+      :Retornar confirmação ao paciente;
+      :Remover horário das próximas consultas de disponibilidade;
+    else (Não)
+      :Retornar conflito de horário;
+      :Atualizar horários disponíveis;
+      :Paciente escolhe outro horário;
+    endif
+  else (Não)
+    :Informar que não há horários vagos;
+    :Paciente pode trocar o médico ou atualizar horários;
+  endif
+else (Não)
+  :Informar que não há médicos disponíveis;
+endif
+
+stop
+@enduml

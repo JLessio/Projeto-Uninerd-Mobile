@@ -1,0 +1,55 @@
+@startuml
+title Projeto Uninerd — Casos de Uso do Paciente
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor Paciente
+
+rectangle "Sistema Uninerd" {
+  usecase "Cadastrar conta" as UC01
+  usecase "Autenticar-se" as UC02
+  usecase "Gerenciar perfil" as UC03
+  usecase "Visualizar próximos\nagendamentos" as UC04
+  usecase "Realizar novo\nagendamento" as UC05
+  usecase "Escolher médico" as UC06
+  usecase "Consultar perfil\nprofissional do médico" as UC07
+  usecase "Consultar dias e\nhorários disponíveis" as UC08
+  usecase "Atualizar horários\ndisponíveis" as UC09
+  usecase "Selecionar tipo de\natendimento" as UC10
+  usecase "Validar disponibilidade" as UC11
+  usecase "Editar agendamento" as UC12
+  usecase "Cancelar agendamento" as UC13
+  usecase "Alternar tema" as UC14
+}
+
+Paciente --> UC01
+Paciente --> UC02
+Paciente --> UC03
+Paciente --> UC04
+Paciente --> UC05
+Paciente --> UC09
+Paciente --> UC12
+Paciente --> UC13
+Paciente --> UC14
+
+UC05 .> UC06 : <<include>>
+UC05 .> UC07 : <<include>>
+UC05 .> UC08 : <<include>>
+UC05 .> UC10 : <<include>>
+UC05 .> UC11 : <<include>>
+UC09 .> UC08 : <<include>>
+UC12 .> UC08 : <<include>>
+UC12 .> UC11 : <<include>>
+
+note right of UC07
+  Exibe somente dados profissionais:
+  foto, nome, especialidade, CRM/UF,
+  biografia e local de atendimento.
+end note
+
+note right of UC11
+  Impede horário passado, não configurado
+  ou já reservado por outro paciente.
+end note
+@enduml
