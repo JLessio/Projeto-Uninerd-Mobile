@@ -9,6 +9,8 @@ export class User {
   public readonly crm_numero?: string;
   public readonly crm_uf?: string;
   public readonly id_especialidade?: number;
+  public readonly foto_url?: string | null;
+  public readonly biografia?: string | null;
   public readonly nivel: IUser['nivel'];
 
   public constructor(data: IUser) {
@@ -20,6 +22,8 @@ export class User {
     this.crm_numero = data.crm_numero;
     this.crm_uf = data.crm_uf;
     this.id_especialidade = data.id_especialidade;
+    this.foto_url = data.foto_url;
+    this.biografia = data.biografia;
     this.nivel = data.nivel;
   }
 
@@ -32,6 +36,8 @@ export class User {
       crm_numero: this.crm_numero,
       crm_uf: this.crm_uf,
       id_especialidade: this.id_especialidade,
+      foto_url: this.foto_url,
+      biografia: this.biografia,
       nivel: this.nivel,
     };
   }

@@ -7,7 +7,7 @@ export class UserRepository {
 
   public async findByEmail(email: string): Promise<IUser | null> {
     const [rows] = await this.db.execute<RowDataPacket[]>(
-      'SELECT id, nome, email, senha, cpf, crm_numero, crm_uf, id_especialidade, nivel FROM usuarios WHERE email = ?',
+      'SELECT id, nome, email, senha, cpf, crm_numero, crm_uf, id_especialidade, foto_url, biografia, nivel FROM usuarios WHERE email = ?',
       [email]
     );
     return (rows[0] as IUser) ?? null;
@@ -45,6 +45,15 @@ export class UserRepository {
       'INSERT INTO usuarios (nome, email, senha, cpf, crm_numero, crm_uf, id_especialidade, nivel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       values
     );
+    if (user.nivel === 'medico') {
+      await this.db.execute(
+        `INSERT INTO horarios_medicos (id_medico, dia_semana, horario)
+         SELECT ?, d.dia_semana, h.horario
+         FROM (SELECT 0 dia_semana UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6) d
+         CROSS JOIN (SELECT '08:00:00' horario UNION ALL SELECT '09:00:00' UNION ALL SELECT '10:00:00' UNION ALL SELECT '11:00:00' UNION ALL SELECT '12:00:00' UNION ALL SELECT '13:00:00' UNION ALL SELECT '14:00:00' UNION ALL SELECT '15:00:00' UNION ALL SELECT '16:00:00' UNION ALL SELECT '17:00:00') h`,
+        [result.insertId],
+      );
+    }
     return result.insertId;
   }
 
@@ -52,9 +61,10 @@ export class UserRepository {
     const fields: string[] = [];
     const values: (string | number | null)[] = [];
 
+    const editableFields = new Set(['nome', 'cpf', 'crm_numero', 'crm_uf', 'id_especialidade', 'senha', 'foto_url', 'biografia']);
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        if (key === 'email' || key === 'id') continue; // Ignorar campos sensíveis na atualização
+        if (!editableFields.has(key)) continue;
         const value = data[key as keyof Partial<IUser>];
         if (value === undefined) continue;
         fields.push(`${key} = ?`);

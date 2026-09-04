@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/UserService'; // Corrigido: Removido espaço extra
 import { IUser, IUserCredentials } from '../../@types/index';
+import fs from 'fs/promises';
+import path from 'path';
 
 export class UserController {
-  public constructor(private readonly userService: UserService) {}
+  public constructor(
+    private readonly userService: Pick<UserService, 'register' | 'update' | 'getById' | 'login' | 'delete'>,
+  ) {}
 
   public register = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -78,6 +82,31 @@ export class UserController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro interno.';
       res.status(400).json({ success: false, message });
+    }
+  };
+
+  public uploadPhoto = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = Number(req.params.id);
+      if (req.user?.id !== id) { res.status(403).json({ success: false, message: 'Você só pode alterar sua própria foto.' }); return; }
+      if (!req.file) { res.status(400).json({ success: false, message: 'Selecione uma imagem.' }); return; }
+      const previousUser = await this.userService.getById(id);
+      const photoUrl = `/uploads/profiles/${req.file.filename}`;
+      const user = await this.userService.update(id, { foto_url: photoUrl });
+      const previousPhoto = previousUser.foto_url;
+      if (previousPhoto) {
+        const pathname = (() => { try { return new URL(previousPhoto).pathname; } catch { return previousPhoto; } })();
+        if (pathname.startsWith('/uploads/profiles/')) {
+          const oldFilename = path.basename(pathname);
+          if (oldFilename !== req.file.filename) {
+            await fs.unlink(path.resolve(process.cwd(), 'uploads', 'profiles', oldFilename)).catch(() => undefined);
+          }
+        }
+      }
+      res.json({ success: true, data: user });
+    } catch (error) {
+      if (req.file) await fs.unlink(req.file.path).catch(() => undefined);
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Erro ao enviar foto.' });
     }
   };
 }

@@ -4,9 +4,10 @@ import { User } from '../entities/User';
 import { UserRepository } from '../repositories/UserRepository';
 import { IUser, IUserCredentials } from '../../@types/index';
 import { isValidEmail, isValidCPF, isStrongPassword } from '../utils/validators';
+import { getJwtSecret } from '../config/security';
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
-const JWT_SECRET  = process.env.JWT_SECRET ?? 'fallback_secret';
+const JWT_SECRET = getJwtSecret();
 const JWT_OPTIONS: SignOptions = { expiresIn: '1d' };
 
 export class UserService {
@@ -79,6 +80,9 @@ export class UserService {
     const existingUser = await this.userRepository.findById(id);
     if (!existingUser) throw new Error('Usuário não encontrado.');
     if (data.email && data.email !== existingUser.email) throw new Error('Não é permitido alterar o e-mail.');
+    if (data.nome !== undefined && !data.nome.trim()) throw new Error('Nome é obrigatório.');
+    if (data.biografia !== undefined && data.biografia !== null && data.biografia.length > 500) throw new Error('A biografia deve ter no máximo 500 caracteres.');
+    if (data.foto_url !== undefined && data.foto_url !== null && data.foto_url.length > 2048) throw new Error('O endereço da foto é muito longo.');
     
     if (data.cpf) data.cpf = data.cpf.replace(/\D/g, '');
     if (data.cpf && data.cpf !== existingUser.cpf) {
