@@ -3,3 +3,10 @@ dist/
 .env
 *.log
 .DS_Store
+uploads/profiles/*
+mobile/.expo/
+mobile/.claude/
+mobile/.vscode/
+cypress/screenshots/
+cypress/videos/
+chatgpt.text

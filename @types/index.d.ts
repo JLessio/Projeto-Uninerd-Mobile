@@ -7,7 +7,9 @@ export interface IUser {
   crm_numero?: string;
   crm_uf?: string;
   id_especialidade?: number;
-  nivel: 'medico' | 'paciente';
+  foto_url?: string | null;
+  biografia?: string | null;
+  nivel: 'medico' | 'paciente' | 'admin';
 }
 
 export interface IUserCredentials {

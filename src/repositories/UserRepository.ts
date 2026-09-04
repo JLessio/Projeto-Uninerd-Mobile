@@ -7,7 +7,7 @@ export class UserRepository {
 
   public async findByEmail(email: string): Promise<IUser | null> {
     const [rows] = await this.db.execute<RowDataPacket[]>(
-      'SELECT id, nome, email, senha, cpf, crm_numero, crm_uf, id_especialidade, nivel FROM usuarios WHERE email = ?',
+      'SELECT id, nome, email, senha, cpf, crm_numero, crm_uf, id_especialidade, foto_url, biografia, nivel FROM usuarios WHERE email = ?',
       [email]
     );
     return (rows[0] as IUser) ?? null;
@@ -61,9 +61,10 @@ export class UserRepository {
     const fields: string[] = [];
     const values: (string | number | null)[] = [];
 
+    const editableFields = new Set(['nome', 'cpf', 'crm_numero', 'crm_uf', 'id_especialidade', 'senha', 'foto_url', 'biografia']);
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        if (key === 'email' || key === 'id') continue; // Ignorar campos sensíveis na atualização
+        if (!editableFields.has(key)) continue;
         const value = data[key as keyof Partial<IUser>];
         if (value === undefined) continue;
         fields.push(`${key} = ?`);

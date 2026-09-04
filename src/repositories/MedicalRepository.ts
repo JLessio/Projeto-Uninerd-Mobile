@@ -21,7 +21,9 @@ export class MedicalRepository {
         e.nome as specialty,
         u.crm_numero,
         u.crm_uf,
-        u.endereco as address
+        u.endereco as address,
+        u.foto_url,
+        u.biografia
       FROM usuarios u 
       LEFT JOIN especialidades e ON u.id_especialidade = e.id
       WHERE u.nivel = 'medico'
@@ -49,7 +51,9 @@ export class MedicalRepository {
         u.crm_numero as crm,
         u.crm_numero,
         u.crm_uf,
-        u.endereco as address
+        u.endereco as address,
+        u.foto_url,
+        u.biografia
        FROM usuarios u
        LEFT JOIN especialidades e ON u.id_especialidade = e.id
        WHERE u.id = ? AND u.nivel = 'medico'`,
@@ -96,6 +100,7 @@ export class MedicalRepository {
           [doctorId, slot.weekday, `${slot.time}:00`],
         );
       }
+      await connection.execute('UPDATE usuarios SET agenda_configurada = 1 WHERE id = ? AND nivel = ?', [doctorId, 'medico']);
       await connection.commit();
     } catch (error) {
       await connection.rollback();

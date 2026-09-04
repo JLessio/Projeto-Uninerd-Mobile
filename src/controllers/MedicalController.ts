@@ -18,8 +18,13 @@ export class MedicalController {
     return type === 'exame' ? 'exame' : 'consulta';
   }
 
+  private isConcurrentAppointmentConflict(error: unknown): boolean {
+    if (!error || typeof error !== 'object' || !('code' in error)) return false;
+    return String((error as { code?: unknown }).code) === 'ER_DUP_ENTRY';
+  }
+
   private canManageDoctors(user?: { id: number; nivel: string }): boolean {
-    return user?.nivel === 'medico';
+    return user?.nivel === 'admin';
   }
 
   private canAccessAppointment(appointment: Record<string, unknown>, user?: { id: number; nivel: string }): boolean {
@@ -344,6 +349,9 @@ export class MedicalController {
       if (error instanceof BusinessRuleError) {
         return res.status(error.status).json({ message: error.message });
       }
+      if (this.isConcurrentAppointmentConflict(error)) {
+        return res.status(409).json({ message: 'Este horário acabou de ser ocupado. Atualize os horários disponíveis.' });
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ Erro no INSERT:', errorMessage);
       res.status(500).json({ message: 'Erro ao criar agendamento no banco' });
@@ -392,6 +400,9 @@ export class MedicalController {
     } catch (error) {
       if (error instanceof BusinessRuleError) {
         return res.status(error.status).json({ message: error.message });
+      }
+      if (this.isConcurrentAppointmentConflict(error)) {
+        return res.status(409).json({ message: 'Este horário acabou de ser ocupado. Atualize os horários disponíveis.' });
       }
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Erro ao atualizar agendamento:', errorMessage);
