@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
 import { AppointmentForm } from '@/components/appointments/AppointmentForm';
@@ -38,7 +37,7 @@ export default function NewAppointmentScreen() {
     setError(null);
     try {
       await createAppointment(data, token);
-      Alert.alert('Sucesso', 'Agendamento realizado com sucesso.', [{ text: 'OK', onPress: () => router.back() }]);
+      router.replace('/(tabs)');
     } catch (submitError) {
       if (submitError instanceof ApiError && submitError.status === 401) router.replace('/login');
       else setError(submitError instanceof Error ? submitError.message : 'Não foi possível realizar o agendamento.');
