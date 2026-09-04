@@ -7,6 +7,9 @@ uploads/profiles/*
 mobile/.expo/
 mobile/.claude/
 mobile/.vscode/
+frontend/.vite/
+frontend/.vscode/
+infra/certs/*.pem
 cypress/screenshots/
 cypress/videos/
 chatgpt.text
