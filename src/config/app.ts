@@ -33,7 +33,12 @@ const createApp = (): Application => {
   app.use(express.urlencoded({ extended: true }));
   app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
-  app.get('/api/test', (req, res) => res.json({ ok: true }));
+  app.get('/api', (_req, res) => res.json({
+    ok: true,
+    service: 'API Uninerd',
+    message: 'Servidor conectado.',
+  }));
+  app.get('/api/test', (_req, res) => res.json({ ok: true }));
   const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false });
   app.use('/api/users/login', authLimiter);
   app.use('/api/users/register', authLimiter);
