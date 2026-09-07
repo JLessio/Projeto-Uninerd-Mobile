@@ -35,3 +35,19 @@ export function formatAppointmentDate(apiDate: string): string {
   const parsedDate = new Date(apiDate.replace(' ', 'T'));
   return Number.isNaN(parsedDate.getTime()) ? apiDate : parsedDate.toLocaleString('pt-BR');
 }
+
+export function getAppointmentDisplayStatus(status: string, apiDate: string, now: Date = new Date()): string {
+  const normalizedStatus = status.trim().toUpperCase();
+  if (normalizedStatus === 'CONCLUIDO') return 'CONCLUÍDO';
+  if (normalizedStatus === 'CANCELADO') return 'CANCELADO';
+
+  const appointmentDate = new Date(apiDate.replace(' ', 'T'));
+  if (!Number.isNaN(appointmentDate.getTime()) && appointmentDate.getTime() <= now.getTime()) return 'EXPIRADO';
+
+  return normalizedStatus === 'CONFIRMADO' ? 'CONFIRMADO' : 'AGENDADO';
+}
+
+export function isAppointmentActionable(status: string, apiDate: string, now: Date = new Date()): boolean {
+  const displayStatus = getAppointmentDisplayStatus(status, apiDate, now);
+  return displayStatus === 'AGENDADO' || displayStatus === 'CONFIRMADO';
+}

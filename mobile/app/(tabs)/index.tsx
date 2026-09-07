@@ -14,7 +14,7 @@ import { useAppTheme } from '@/contexts/ThemeContext';
 import { ApiError } from '@/services/api';
 import { deleteAppointment, getAppointments } from '@/services/appointmentService';
 import type { Appointment } from '@/types/appointment';
-import { formatAppointmentDate } from '@/utils/appointment';
+import { formatAppointmentDate, getAppointmentDisplayStatus, isAppointmentActionable } from '@/utils/appointment';
 import { confirmDestructiveAction } from '@/utils/confirmation';
 
 const workHours = Array.from({ length: 10 }, (_, index) => index + 8);
@@ -140,7 +140,7 @@ export default function HomeScreen() {
                     <Text style={[styles.appointmentCaption, isDark && styles.darkMuted]}>Médico</Text>
                     <Text style={[styles.doctorName, isDark && styles.darkText]}>{appointment.doctorName}</Text>
                   </View>
-                  <View style={styles.appointmentStatus}><Text style={styles.appointmentStatusText}>{appointment.status}</Text></View>
+                  <View style={styles.appointmentStatus}><Text style={styles.appointmentStatusText}>{getAppointmentDisplayStatus(appointment.status, appointment.date)}</Text></View>
                 </View>
                 <View style={styles.appointmentDetail}>
                   <Ionicons name="calendar-outline" size={18} color={mutedIconColor} />
@@ -150,14 +150,14 @@ export default function HomeScreen() {
                   <Ionicons name="document-text-outline" size={18} color={mutedIconColor} />
                   <Text style={[styles.appointmentDetailText, isDark && styles.darkMuted]}>{appointment.type === 'exame' ? 'Exame' : 'Consulta'}</Text>
                 </View>
-                <View style={styles.appointmentActions}>
+                {isAppointmentActionable(appointment.status, appointment.date) ? <View style={styles.appointmentActions}>
                   <Pressable accessibilityRole="button" onPress={() => router.push(`/appointments/${appointment.id}/edit`)} style={styles.editAction}>
                     <Text style={styles.editActionText}>Editar</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" disabled={deletingId === appointment.id} onPress={() => confirmCancellation(appointment)} style={[styles.cancelAction, deletingId === appointment.id && styles.disabledAction]}>
                     <Text style={styles.cancelActionText}>{deletingId === appointment.id ? 'Cancelando...' : 'Cancelar'}</Text>
                   </Pressable>
-                </View>
+                </View> : null}
               </View>
             ))}
           </ScrollView>

@@ -12,6 +12,7 @@ import { useAppTheme } from '@/contexts/ThemeContext';
 import { useSession } from '@/contexts/SessionContext';
 import { deleteAdminAppointment, deleteAdminUser, getAdminUser, updateAdminAppointment, updateAdminUser } from '@/services/adminService';
 import type { AdminAction, AdminUserDetails } from '@/types/admin';
+import { getAppointmentDisplayStatus } from '@/utils/appointment';
 
 type Pending = { action: AdminAction; targetId: number; description: string; payload?: object };
 
@@ -48,7 +49,7 @@ export default function AdminUserDetailsScreen() {
     </View>
     <Text style={[styles.subtitle, isDark && styles.darkText]}>Agendamentos ({details.appointments.length})</Text>
     {details.appointments.map((appointment) => <View key={appointment.id} style={[styles.card, isDark && styles.darkCard]}>
-      <Text style={[styles.appointmentTitle, isDark && styles.darkText]}>{appointment.data_consulta.replace('T', ' ').slice(0,16)} — {appointment.status}</Text>
+      <Text style={[styles.appointmentTitle, isDark && styles.darkText]}>{appointment.data_consulta.replace('T', ' ').slice(0,16)} — {getAppointmentDisplayStatus(appointment.status, appointment.data_consulta)}</Text>
       <Text style={[styles.info, isDark && styles.darkMuted]}>Paciente: {appointment.paciente_nome} · {appointment.paciente_email}{appointment.paciente_cpf ? ` · CPF ${appointment.paciente_cpf}` : ''}</Text>
       <Text style={[styles.info, isDark && styles.darkMuted]}>Médico: {appointment.medico_nome} · {appointment.medico_email} · CRM {appointment.crm_numero}/{appointment.crm_uf}</Text>
       <AppButton title="Marcar como concluído" variant="secondary" onPress={() => setPending({ action:'update-appointment', targetId:appointment.id, description:'marcar este agendamento como concluído', payload:{ status:'CONCLUIDO' } })} />

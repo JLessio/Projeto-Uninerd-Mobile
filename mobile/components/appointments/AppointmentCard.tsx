@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import type { Appointment } from '@/types/appointment';
-import { formatAppointmentDate } from '@/utils/appointment';
+import { formatAppointmentDate, getAppointmentDisplayStatus, isAppointmentActionable } from '@/utils/appointment';
 import { useAppTheme } from '@/contexts/ThemeContext';
 
 interface AppointmentCardProps {
@@ -17,14 +17,16 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, onEdit, onDelete, isDeleting = false, isDoctor = false, showActions = true }: AppointmentCardProps) {
   const { isDark } = useAppTheme();
   const personName = isDoctor ? appointment.patientName : appointment.doctorName;
+  const displayStatus = getAppointmentDisplayStatus(appointment.status, appointment.date);
+  const canChange = isAppointmentActionable(appointment.status, appointment.date);
   return (
     <View style={[styles.container, isDark && styles.darkContainer]} accessibilityLabel={`Agendamento com ${personName}`}>
       <Text style={[styles.caption, isDark && styles.darkDetail]}>{isDoctor ? 'Paciente' : 'Médico'}</Text>
       <Text style={[styles.title, isDark && styles.darkTitle]}>{personName}</Text>
       <Text style={[styles.detail, isDark && styles.darkDetail]}>{formatAppointmentDate(appointment.date)}</Text>
       <Text style={[styles.detail, isDark && styles.darkDetail]}>{appointment.type}</Text>
-      <Text style={[styles.status, isDark && styles.darkStatus]}>{appointment.status}</Text>
-      {showActions ? <View style={styles.actions}>
+      <Text style={[styles.status, isDark && styles.darkStatus]}>{displayStatus}</Text>
+      {showActions && canChange ? <View style={styles.actions}>
         <Pressable accessibilityRole="button" onPress={() => onEdit(appointment)} style={styles.editButton}>
           <Text style={styles.editText}>Editar</Text>
         </Pressable>
