@@ -53,7 +53,7 @@ describe('interação da tela inicial', () => {
     mockedGetAppointments.mockResolvedValue({ data: [{ id: 31, patientId: 2, doctorId: 7, date: todayAt(13), type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Teste', status: 'AGENDADO' }], total: 1, page: 1, last_page: 1 });
     const view = await render(<HomeScreen />);
 
-    await waitFor(() => expect(view.getByText('Paciente Teste')).toBeTruthy());
+    await waitFor(() => expect(view.getAllByText('Paciente Teste').length).toBeGreaterThan(0));
     expect(view.getByText('1 de 10 horários ocupados')).toBeTruthy();
     expect(view.getAllByText('Ocupado')).toHaveLength(1);
   });
