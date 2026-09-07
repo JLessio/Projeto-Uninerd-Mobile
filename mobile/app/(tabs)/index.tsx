@@ -4,6 +4,7 @@ import { Redirect, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppButton } from '@/components/common/AppButton';
+import { CancellationModal } from '@/components/appointments/CancellationModal';
 import { AppScreen } from '@/components/common/AppScreen';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
@@ -15,7 +16,6 @@ import { ApiError } from '@/services/api';
 import { deleteAppointment, getAppointments } from '@/services/appointmentService';
 import type { Appointment } from '@/types/appointment';
 import { formatAppointmentDate, getAppointmentDisplayStatus, isAppointmentActionable } from '@/utils/appointment';
-import { confirmDestructiveAction } from '@/utils/confirmation';
 
 const workHours = Array.from({ length: 10 }, (_, index) => index + 8);
 
@@ -44,6 +44,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(Boolean(token && user?.nivel !== 'admin'));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingCancellation, setPendingCancellation] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadSchedule = useCallback(async (refreshing = false) => {
@@ -53,7 +54,7 @@ export default function HomeScreen() {
     setError(null);
     try {
       const response = await getAppointments(token);
-      setAppointments(response.data.filter((appointment) => appointment.status.toUpperCase() !== 'CANCELADO'));
+      setAppointments(response.data);
     } catch (loadError) {
       if (loadError instanceof ApiError && loadError.status === 401) {
         signOut();
@@ -71,7 +72,7 @@ export default function HomeScreen() {
 
   const dayAppointments = useMemo(() => {
     const selectedKey = toDateKey(selectedDate);
-    return appointments.filter((appointment) => appointmentDateParts(appointment.date).date === selectedKey);
+    return appointments.filter((appointment) => appointment.status.toUpperCase() !== 'CANCELADO' && appointmentDateParts(appointment.date).date === selectedKey);
   }, [appointments, selectedDate]);
 
   const upcomingAppointments = useMemo(() => appointments
@@ -88,32 +89,29 @@ export default function HomeScreen() {
   };
 
   const confirmCancellation = (appointment: Appointment) => {
-    confirmDestructiveAction({
-      title: 'Cancelar agendamento',
-      message: 'Deseja cancelar esta consulta?',
-      cancelLabel: 'Voltar',
-      confirmLabel: 'Cancelar consulta',
-      onConfirm: async () => {
-          if (!token) return;
-          setDeletingId(appointment.id);
-          setError(null);
-          try {
-            await deleteAppointment(appointment.id, token);
+    setPendingCancellation(appointment);
+  };
+
+  const cancelAppointment = async (reason: string) => {
+    const appointment = pendingCancellation;
+    if (!token || !appointment) return;
+    setDeletingId(appointment.id);
+    setError(null);
+    try {
+            await deleteAppointment(appointment.id, token, reason);
+            setPendingCancellation(null);
             await loadSchedule(true);
           } catch (deleteError) {
             setError(deleteError instanceof Error ? deleteError.message : 'Não foi possível cancelar o agendamento.');
-          } finally {
-            setDeletingId(null);
-          }
-      },
-    });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (user?.nivel === 'admin') return <Redirect href="/(tabs)/admin-pacientes" />;
 
   if (!isDoctor) {
     const patientAppointments = appointments
-      .filter((appointment) => appointment.status.toUpperCase() !== 'CANCELADO')
       .sort((first, second) => new Date(first.date.replace(' ', 'T')).getTime() - new Date(second.date.replace(' ', 'T')).getTime());
 
     return (
@@ -150,6 +148,7 @@ export default function HomeScreen() {
                   <Ionicons name="document-text-outline" size={18} color={mutedIconColor} />
                   <Text style={[styles.appointmentDetailText, isDark && styles.darkMuted]}>{appointment.type === 'exame' ? 'Exame' : 'Consulta'}</Text>
                 </View>
+                {appointment.cancellationReason ? <View style={[styles.cancellationMessage, isDark && styles.darkCancellationMessage]}><Text style={[styles.cancellationTitle, isDark && styles.darkText]}>Mensagem de cancelamento do {appointment.cancelledByRole === 'medico' ? 'médico' : 'paciente'}</Text><Text style={[styles.appointmentDetailText, isDark && styles.darkMuted]}>{appointment.cancellationReason}</Text></View> : null}
                 {isAppointmentActionable(appointment.status, appointment.date) ? <View style={styles.appointmentActions}>
                   <Pressable accessibilityRole="button" onPress={() => router.push(`/appointments/${appointment.id}/edit`)} style={styles.editAction}>
                     <Text style={styles.editActionText}>Editar</Text>
@@ -162,6 +161,7 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
         )}
+        <CancellationModal visible={Boolean(pendingCancellation)} loading={deletingId !== null} onClose={() => setPendingCancellation(null)} onConfirm={cancelAppointment} />
       </AppScreen>
     );
   }
@@ -249,6 +249,8 @@ const styles = StyleSheet.create({
   appointmentStatusText: { color: Colors.light.tint, fontSize: 11, fontWeight: '700' },
   appointmentDetail: { alignItems: 'center', flexDirection: 'row', gap: Spacing.sm }, appointmentDetailText: { color: Colors.light.mutedText, fontSize: 14 },
   appointmentActions: { borderTopColor: Colors.light.border, borderTopWidth: 1, flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs, paddingTop: Spacing.sm }, editAction: { alignItems: 'center', flex: 1, padding: Spacing.sm }, cancelAction: { alignItems: 'center', flex: 1, padding: Spacing.sm }, editActionText: { color: Colors.light.tint, fontWeight: '700' }, cancelActionText: { color: Colors.light.danger, fontWeight: '700' }, disabledAction: { opacity: 0.5 },
+  cancellationMessage: { backgroundColor: '#fff4e5', borderRadius: 8, gap: Spacing.xs, padding: Spacing.sm },
+  darkCancellationMessage: { backgroundColor: '#3b2b16' }, cancellationTitle: { color: Colors.light.text, fontWeight: '800' },
   emptyCard: { alignItems: 'center', backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, padding: Spacing.xl },
   emptyText: { color: Colors.light.mutedText, fontSize: 15, textAlign: 'center' },
   dateNavigator: { alignItems: 'center', backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md, padding: Spacing.sm },

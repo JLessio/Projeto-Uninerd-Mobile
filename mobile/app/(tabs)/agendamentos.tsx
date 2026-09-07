@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 
 import { AppointmentList } from '@/components/appointments/AppointmentList';
+import { CancellationModal } from '@/components/appointments/CancellationModal';
 import { AppButton } from '@/components/common/AppButton';
 import { AppScreen } from '@/components/common/AppScreen';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
@@ -13,7 +14,6 @@ import { useSession } from '@/contexts/SessionContext';
 import { deleteAppointment, getAppointments } from '@/services/appointmentService';
 import { ApiError } from '@/services/api';
 import type { Appointment } from '@/types/appointment';
-import { confirmDestructiveAction } from '@/utils/confirmation';
 
 export default function AgendamentosScreen() {
   const { token, user, signOut } = useSession();
@@ -22,6 +22,7 @@ export default function AgendamentosScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingCancellation, setPendingCancellation] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleUnauthorized = useCallback(() => {
@@ -36,7 +37,7 @@ export default function AgendamentosScreen() {
     setError(null);
     try {
       const response = await getAppointments(token);
-      setAppointments(response.data.filter((appointment) => appointment.status !== 'CANCELADO'));
+      setAppointments(response.data);
     } catch (loadError) {
       if (loadError instanceof ApiError && loadError.status === 401) handleUnauthorized();
       else setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os agendamentos.');
@@ -49,21 +50,18 @@ export default function AgendamentosScreen() {
   useFocusEffect(useCallback(() => { void loadAppointments(); }, [loadAppointments]));
 
   const confirmDelete = (appointment: Appointment) => {
-    confirmDestructiveAction({
-      title: 'Cancelar agendamento',
-      message: 'Tem certeza que deseja cancelar este agendamento?',
-      cancelLabel: 'Não',
-      confirmLabel: 'Sim, cancelar',
-      onConfirm: () => handleDelete(appointment.id),
-    });
+    setPendingCancellation(appointment);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (reason: string) => {
+    const id = pendingCancellation?.id;
+    if (!id) return;
     if (!token) return;
     setDeletingId(id);
     setError(null);
     try {
-      await deleteAppointment(id, token);
+      await deleteAppointment(id, token, reason);
+      setPendingCancellation(null);
       await loadAppointments(true);
     } catch (deleteError) {
       if (deleteError instanceof ApiError && deleteError.status === 401) handleUnauthorized();
@@ -96,6 +94,7 @@ export default function AgendamentosScreen() {
           isDoctor={isDoctor}
         />
       )}
+      <CancellationModal visible={Boolean(pendingCancellation)} loading={deletingId !== null} onClose={() => setPendingCancellation(null)} onConfirm={handleDelete} />
     </AppScreen>
   );
 }

@@ -206,7 +206,8 @@ export class MedicalRepository {
         a.tipo as type,
         m.nome as doctorName, 
         u.nome as patientName, 
-        a.status
+        a.status, a.motivo_cancelamento as cancellationReason,
+        CASE WHEN a.cancelado_por = a.id_usuario THEN 'paciente' WHEN a.cancelado_por = a.id_medico THEN 'medico' ELSE NULL END as cancelledByRole
       FROM agendamentos a 
       JOIN usuarios m ON a.id_medico = m.id 
       JOIN usuarios u ON a.id_usuario = u.id
@@ -251,7 +252,9 @@ export class MedicalRepository {
   public async findAppointmentById(id: number): Promise<RowDataPacket | null> {
     const [rows] = await this.db.execute<RowDataPacket[]>(
       `SELECT a.id, a.id_usuario as patientId, a.id_medico as doctorId, a.data_consulta as date,
-              a.tipo as type, a.status, p.nome as patientName, p.email as patientEmail,
+              a.tipo as type, a.status, a.motivo_cancelamento as cancellationReason,
+              CASE WHEN a.cancelado_por = a.id_usuario THEN 'paciente' WHEN a.cancelado_por = a.id_medico THEN 'medico' ELSE NULL END as cancelledByRole,
+              p.nome as patientName, p.email as patientEmail,
               m.nome as doctorName
        FROM agendamentos a
        JOIN usuarios p ON p.id = a.id_usuario
@@ -323,10 +326,10 @@ export class MedicalRepository {
     return result.affectedRows;
   }
 
-  public async deleteAppointment(id: number): Promise<number> {
+  public async deleteAppointment(id: number, cancelledBy: number, reason: string): Promise<number> {
     const [result] = await this.db.execute<ResultSetHeader>(
-      'UPDATE agendamentos SET status = ? WHERE id = ?',
-      ['CANCELADO', id]
+      "UPDATE agendamentos SET status = 'CANCELADO', cancelado_por = ?, motivo_cancelamento = ? WHERE id = ? AND status <> 'CANCELADO'",
+      [cancelledBy, reason, id]
     );
     return result.affectedRows;
   }

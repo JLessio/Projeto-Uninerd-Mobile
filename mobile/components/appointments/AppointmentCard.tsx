@@ -26,6 +26,7 @@ export function AppointmentCard({ appointment, onEdit, onDelete, isDeleting = fa
       <Text style={[styles.detail, isDark && styles.darkDetail]}>{formatAppointmentDate(appointment.date)}</Text>
       <Text style={[styles.detail, isDark && styles.darkDetail]}>{appointment.type}</Text>
       <Text style={[styles.status, isDark && styles.darkStatus]}>{displayStatus}</Text>
+      {appointment.cancellationReason ? <View style={[styles.message, isDark && styles.darkMessage]}><Text style={[styles.messageTitle, isDark && styles.darkTitle]}>Mensagem de cancelamento do {appointment.cancelledByRole === 'medico' ? 'médico' : 'paciente'}</Text><Text style={[styles.detail, isDark && styles.darkDetail]}>{appointment.cancellationReason}</Text></View> : null}
       {showActions && canChange ? <View style={styles.actions}>
         <Pressable accessibilityRole="button" onPress={() => onEdit(appointment)} style={styles.editButton}>
           <Text style={styles.editText}>Editar</Text>
@@ -56,6 +57,9 @@ const styles = StyleSheet.create({
   caption: { color: Colors.light.mutedText, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   detail: { color: Colors.light.mutedText, fontSize: 15 },
   status: { color: Colors.light.tint, fontSize: 14, fontWeight: '700' },
+  message: { backgroundColor: '#FEF2F2', borderRadius: 8, gap: Spacing.xs, marginTop: Spacing.sm, padding: Spacing.sm },
+  darkMessage: { backgroundColor: Colors.dark.errorSurface },
+  messageTitle: { color: Colors.light.text, fontSize: 13, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
   editButton: { flex: 1, alignItems: 'center', padding: Spacing.sm },
   deleteButton: { flex: 1, alignItems: 'center', padding: Spacing.sm },

@@ -22,8 +22,8 @@ export function updateAppointment(
   return apiRequest<MessageResponse>(`/appointments/${id}`, { method: 'PUT', token, body: data });
 }
 
-export function deleteAppointment(id: number, token: string): Promise<MessageResponse> {
-  return apiRequest<MessageResponse>(`/appointments/${id}`, { method: 'DELETE', token });
+export function deleteAppointment(id: number, token: string, reason: string): Promise<MessageResponse> {
+  return apiRequest<MessageResponse>(`/appointments/${id}`, { method: 'DELETE', token, body: { reason } });
 }
 
 export function completeAppointment(id: number, token: string): Promise<MessageResponse> {
