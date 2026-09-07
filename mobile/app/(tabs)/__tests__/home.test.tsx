@@ -38,7 +38,7 @@ describe('interação da tela inicial', () => {
 
   it('mostra as consultas do paciente e abre um novo agendamento', async () => {
     mockUser = { id: 2, nome: 'Paciente Teste', email: 'paciente@teste.com', nivel: 'paciente' };
-    mockedGetAppointments.mockResolvedValue({ data: [{ id: 30, patientId: 2, doctorId: 7, date: todayAt(13), type: 'consulta', doctorName: 'Dra. Ana', patientName: 'Paciente Teste', status: 'AGENDADO' }], total: 1, page: 1, last_page: 1 });
+    mockedGetAppointments.mockResolvedValue({ data: [{ id: 30, patientId: 2, doctorId: 7, date: '2099-01-10 13:00:00', type: 'consulta', doctorName: 'Dra. Ana', patientName: 'Paciente Teste', status: 'AGENDADO' }], total: 1, page: 1, last_page: 1 });
     const view = await render(<HomeScreen />);
 
     expect(await view.findByText('Dra. Ana')).toBeTruthy();
@@ -46,6 +46,35 @@ describe('interação da tela inicial', () => {
     expect(mockPush).toHaveBeenCalledWith('/appointments/30/edit');
     await fireEvent.press(view.getByRole('button', { name: '+ Novo agendamento' }));
     expect(mockPush).toHaveBeenCalledWith('/appointments/new');
+  });
+
+  it('separa próximas consultas e histórico com os totais do paciente', async () => {
+    mockUser = { id: 2, nome: 'Paciente Teste', email: 'paciente@teste.com', nivel: 'paciente' };
+    mockedGetAppointments.mockResolvedValue({
+      data: [
+        { id: 40, patientId: 2, doctorId: 7, date: '2099-01-10 13:00:00', type: 'consulta', doctorName: 'Dra. Futura', patientName: 'Paciente Teste', status: 'AGENDADO' },
+        { id: 41, patientId: 2, doctorId: 8, date: '2025-01-10 14:00:00', type: 'consulta', doctorName: 'Dr. Concluído', patientName: 'Paciente Teste', status: 'CONCLUIDO' },
+        { id: 42, patientId: 2, doctorId: 9, date: '2099-02-10 15:00:00', type: 'consulta', doctorName: 'Dra. Cancelada', patientName: 'Paciente Teste', status: 'CANCELADO', cancellationReason: 'Peço desculpas pelo cancelamento.', cancelledByRole: 'medico' },
+        { id: 43, patientId: 2, doctorId: 10, date: '2025-02-10 16:00:00', type: 'exame', doctorName: 'Dr. Expirado', patientName: 'Paciente Teste', status: 'AGENDADO' },
+      ],
+      total: 4,
+      page: 1,
+      last_page: 1,
+    });
+
+    const view = await render(<HomeScreen />);
+
+    expect(await view.findByText('Próximas consultas (1)')).toBeTruthy();
+    expect(view.getByText('Histórico de consultas (3)')).toBeTruthy();
+    expect(view.getByText('Total marcadas')).toBeTruthy();
+    expect(view.getByText('Concluídas')).toBeTruthy();
+    expect(view.getByText('Canceladas')).toBeTruthy();
+    expect(view.getByText('Expiradas')).toBeTruthy();
+    expect(view.getByText('Dra. Futura')).toBeTruthy();
+    expect(view.getByText('Dr. Concluído')).toBeTruthy();
+    expect(view.getByText('Dra. Cancelada')).toBeTruthy();
+    expect(view.getByText('Dr. Expirado')).toBeTruthy();
+    expect(view.getByText('Peço desculpas pelo cancelamento.')).toBeTruthy();
   });
 
   it('mostra horário ocupado e paciente no quadro do médico', async () => {

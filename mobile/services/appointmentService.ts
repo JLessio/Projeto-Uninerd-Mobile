@@ -2,8 +2,21 @@ import { apiRequest } from '@/services/api';
 import type { MessageResponse, PaginatedResponse } from '@/types/api';
 import type { Appointment, AppointmentPayload, UpdateAppointmentPayload } from '@/types/appointment';
 
-export function getAppointments(token: string): Promise<PaginatedResponse<Appointment>> {
-  return apiRequest<PaginatedResponse<Appointment>>('/appointments?limit=100', { token });
+export async function getAppointments(token: string): Promise<PaginatedResponse<Appointment>> {
+  const pageSize = 100;
+  const firstPage = await apiRequest<PaginatedResponse<Appointment>>(`/appointments?page=1&limit=${pageSize}`, { token });
+  if (firstPage.last_page <= 1) return firstPage;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.last_page - 1 }, (_, index) =>
+      apiRequest<PaginatedResponse<Appointment>>(`/appointments?page=${index + 2}&limit=${pageSize}`, { token }),
+    ),
+  );
+
+  return {
+    ...firstPage,
+    data: [firstPage, ...remainingPages].flatMap((page) => page.data),
+  };
 }
 
 export function getAppointmentById(id: number, token: string): Promise<Appointment> {

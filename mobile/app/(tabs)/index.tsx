@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AppButton } from '@/components/common/AppButton';
 import { CancellationModal } from '@/components/appointments/CancellationModal';
+import { PatientAppointmentCard } from '@/components/appointments/PatientAppointmentCard';
 import { AppScreen } from '@/components/common/AppScreen';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
@@ -111,12 +112,23 @@ export default function HomeScreen() {
   if (user?.nivel === 'admin') return <Redirect href="/(tabs)/admin-pacientes" />;
 
   if (!isDoctor) {
-    const patientAppointments = appointments
+    const sortedAppointments = [...appointments]
       .sort((first, second) => new Date(first.date.replace(' ', 'T')).getTime() - new Date(second.date.replace(' ', 'T')).getTime());
+    const upcomingPatientAppointments = sortedAppointments.filter((appointment) => {
+      const displayStatus = getAppointmentDisplayStatus(appointment.status, appointment.date);
+      return displayStatus === 'AGENDADO' || displayStatus === 'CONFIRMADO';
+    });
+    const historyAppointments = sortedAppointments.filter((appointment) => {
+      const displayStatus = getAppointmentDisplayStatus(appointment.status, appointment.date);
+      return displayStatus !== 'AGENDADO' && displayStatus !== 'CONFIRMADO';
+    }).reverse();
+    const completedCount = appointments.filter((appointment) => appointment.status.toUpperCase() === 'CONCLUIDO').length;
+    const cancelledCount = appointments.filter((appointment) => appointment.status.toUpperCase() === 'CANCELADO').length;
+    const expiredCount = appointments.filter((appointment) => getAppointmentDisplayStatus(appointment.status, appointment.date) === 'EXPIRADO').length;
 
     return (
       <AppScreen>
-        <ScreenHeader title={`Olá, ${user?.nome?.split(' ')[0] ?? 'paciente'}!`} description="Confira suas consultas reservadas." />
+        <ScreenHeader title={`Olá, ${user?.nome?.split(' ')[0] ?? 'paciente'}!`} description="Acompanhe suas próximas consultas e todo o histórico." />
         <View style={styles.patientActions}>
           <AppButton title="+ Novo agendamento" onPress={() => router.push('/appointments/new')} />
         </View>
@@ -127,10 +139,28 @@ export default function HomeScreen() {
             refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadSchedule(true)} />}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.sectionHeading, isDark && styles.darkText]}>Horários reservados</Text>
-            {patientAppointments.length === 0 ? (
-              <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>Você ainda não possui horários reservados.</Text></View>
-            ) : patientAppointments.map((appointment) => (
+            <View style={styles.historySummary}>
+              <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{appointments.length}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Total marcadas</Text></View>
+              <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{completedCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Concluídas</Text></View>
+              <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{cancelledCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Canceladas</Text></View>
+              <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{expiredCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Expiradas</Text></View>
+            </View>
+
+            <Text style={[styles.sectionHeading, isDark && styles.darkText]}>Próximas consultas ({upcomingPatientAppointments.length})</Text>
+            {upcomingPatientAppointments.length === 0 ? (
+              <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>Você não possui consultas futuras.</Text></View>
+            ) : upcomingPatientAppointments.map((appointment) => <PatientAppointmentCard
+              key={appointment.id}
+              appointment={appointment}
+              isDeleting={deletingId === appointment.id}
+              onEdit={(selected) => router.push(`/appointments/${selected.id}/edit`)}
+              onCancel={confirmCancellation}
+            />)}
+
+            <Text style={[styles.sectionHeading, styles.historyHeading, isDark && styles.darkText]}>Histórico de consultas ({historyAppointments.length})</Text>
+            {historyAppointments.length === 0 ? (
+              <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>Seu histórico ainda está vazio.</Text></View>
+            ) : historyAppointments.map((appointment) => (
               <View key={appointment.id} style={[styles.appointmentCard, isDark && styles.darkSurface]}>
                 <View style={styles.appointmentTop}>
                   <View style={[styles.doctorIcon, isDark && styles.darkIconSurface]}><Ionicons name="medkit-outline" size={22} color={iconColor} /></View>
@@ -239,7 +269,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   patientActions: { marginBottom: Spacing.lg, width: '100%' },
   patientSchedule: { gap: Spacing.md, paddingBottom: Spacing.xl },
+  historySummary: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  summaryCard: { backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 10, borderWidth: 1, flexBasis: '47%', flexGrow: 1, padding: Spacing.md },
+  summaryValue: { color: Colors.light.text, fontSize: 24, fontWeight: '800' },
+  summaryLabel: { color: Colors.light.mutedText, fontSize: 13, marginTop: 2 },
   sectionHeading: { color: Colors.light.text, fontSize: 20, fontWeight: '700' },
+  historyHeading: { marginTop: Spacing.md },
   appointmentCard: { backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, gap: Spacing.sm, padding: Spacing.md },
   appointmentTop: { alignItems: 'center', flexDirection: 'row', gap: Spacing.sm },
   doctorIcon: { alignItems: 'center', backgroundColor: '#EFF6FF', borderRadius: 10, height: 42, justifyContent: 'center', width: 42 },
