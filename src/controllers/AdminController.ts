@@ -35,13 +35,17 @@ export class AdminController {
     );
     if (!users.length) { res.status(404).json({ success: false, message: 'Usuário não encontrado.' }); return; }
     const [appointments] = await this.db.execute<RowDataPacket[]>(
-      `SELECT a.id, a.data_consulta, a.tipo, a.status,
+      `SELECT a.id, a.data_consulta, a.tipo, a.status, a.motivo_cancelamento,
+              c.nome AS cancelado_por_nome,
+              CASE WHEN a.cancelado_por = a.id_usuario THEN 'paciente'
+                   WHEN a.cancelado_por = a.id_medico THEN 'medico' ELSE NULL END AS cancelado_por_perfil,
               p.id AS paciente_id, p.nome AS paciente_nome, p.email AS paciente_email, p.cpf AS paciente_cpf,
               m.id AS medico_id, m.nome AS medico_nome, m.email AS medico_email,
               m.crm_numero, m.crm_uf, e.nome AS especialidade
        FROM agendamentos a
        JOIN usuarios p ON p.id = a.id_usuario
        JOIN usuarios m ON m.id = a.id_medico
+       LEFT JOIN usuarios c ON c.id = a.cancelado_por
        LEFT JOIN especialidades e ON e.id = m.id_especialidade
        WHERE a.id_usuario = ? OR a.id_medico = ? ORDER BY a.data_consulta DESC`, [id, id],
     );

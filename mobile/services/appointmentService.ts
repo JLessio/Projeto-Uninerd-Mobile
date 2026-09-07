@@ -1,6 +1,6 @@
 import { apiRequest } from '@/services/api';
 import type { MessageResponse, PaginatedResponse } from '@/types/api';
-import type { Appointment, AppointmentPayload, UpdateAppointmentPayload } from '@/types/appointment';
+import type { Appointment, AppointmentParticipantProfileResponse, AppointmentPayload, UpdateAppointmentPayload } from '@/types/appointment';
 
 export async function getAppointments(token: string): Promise<PaginatedResponse<Appointment>> {
   const pageSize = 100;
@@ -21,6 +21,10 @@ export async function getAppointments(token: string): Promise<PaginatedResponse<
 
 export function getAppointmentById(id: number, token: string): Promise<Appointment> {
   return apiRequest<Appointment>(`/appointments/${id}`, { token });
+}
+
+export function getAppointmentParticipantProfile(id: number, token: string): Promise<AppointmentParticipantProfileResponse> {
+  return apiRequest<AppointmentParticipantProfileResponse>(`/appointments/${id}/participant-profile`, { token });
 }
 
 export function createAppointment(data: AppointmentPayload, token: string): Promise<MessageResponse> {

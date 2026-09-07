@@ -23,3 +23,20 @@ export interface AppointmentPayload {
 export interface UpdateAppointmentPayload extends AppointmentPayload {
   status: string;
 }
+
+export interface AppointmentParticipantProfile {
+  id: number;
+  name: string;
+  email?: string | null;
+  role: 'paciente' | 'medico';
+  photoUrl?: string | null;
+  biography?: string | null;
+  crmNumber?: string | null;
+  crmState?: string | null;
+  specialty?: string | null;
+}
+
+export interface AppointmentParticipantProfileResponse {
+  profile: AppointmentParticipantProfile;
+  appointments: Appointment[];
+}

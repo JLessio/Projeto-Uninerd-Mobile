@@ -35,6 +35,8 @@ export default function AdminUserDetailsScreen() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível realizar a ação.'); }
     finally { setPending(null); }
   };
+  const cancellationsByUser = details?.appointments.filter((appointment) => appointment.cancelado_por_perfil === details.user.nivel).length ?? 0;
+  const cancellationsByCounterpart = details?.appointments.filter((appointment) => appointment.cancelado_por_perfil && appointment.cancelado_por_perfil !== details.user.nivel).length ?? 0;
   return <AppScreen>{loading ? <LoadingIndicator /> : <ScrollView contentContainerStyle={styles.content}>
     <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Voltar</Text></Pressable>
     <Text style={[styles.title, isDark && styles.darkText]}>Perfil administrativo</Text>{error ? <ErrorMessage message={error} /> : null}
@@ -47,11 +49,21 @@ export default function AdminUserDetailsScreen() {
       <AppButton title="Editar usuário" onPress={() => setPending({ action:'update-user', targetId:id, description:'editar este usuário', payload:{ nome:name.trim(), email:email.trim().toLowerCase(), biografia:bio.trim() || null } })} />
       <AppButton title="Excluir usuário" variant="danger" onPress={() => setPending({ action:'delete-user', targetId:id, description:'excluir este usuário e seus vínculos' })} />
     </View>
-    <Text style={[styles.subtitle, isDark && styles.darkText]}>Agendamentos ({details.appointments.length})</Text>
+    <Text style={[styles.subtitle, isDark && styles.darkText]}>Histórico completo de consultas ({details.appointments.length})</Text>
+    <View style={[styles.auditSummary, isDark && styles.darkCard]}>
+      <Text style={[styles.auditTitle, isDark && styles.darkText]}>Indicadores de cancelamento</Text>
+      <Text style={[styles.info, isDark && styles.darkMuted]}>Feitos por este usuário: {cancellationsByUser}</Text>
+      <Text style={[styles.info, isDark && styles.darkMuted]}>Feitos pela outra parte: {cancellationsByCounterpart}</Text>
+    </View>
     {details.appointments.map((appointment) => <View key={appointment.id} style={[styles.card, isDark && styles.darkCard]}>
       <Text style={[styles.appointmentTitle, isDark && styles.darkText]}>{appointment.data_consulta.replace('T', ' ').slice(0,16)} — {getAppointmentDisplayStatus(appointment.status, appointment.data_consulta)}</Text>
       <Text style={[styles.info, isDark && styles.darkMuted]}>Paciente: {appointment.paciente_nome} · {appointment.paciente_email}{appointment.paciente_cpf ? ` · CPF ${appointment.paciente_cpf}` : ''}</Text>
       <Text style={[styles.info, isDark && styles.darkMuted]}>Médico: {appointment.medico_nome} · {appointment.medico_email} · CRM {appointment.crm_numero}/{appointment.crm_uf}</Text>
+      {appointment.motivo_cancelamento ? <View style={[styles.auditNote, isDark && styles.darkAuditNote]}>
+        <Text style={[styles.auditTitle, isDark && styles.darkText]}>Nota de cancelamento</Text>
+        <Text style={[styles.info, isDark && styles.darkMuted]}>Cancelado por: {appointment.cancelado_por_nome || 'Usuário não identificado'} ({appointment.cancelado_por_perfil === 'medico' ? 'médico' : 'paciente'})</Text>
+        <Text style={[styles.info, isDark && styles.darkMuted]}>{appointment.motivo_cancelamento}</Text>
+      </View> : null}
       <AppButton title="Marcar como concluído" variant="secondary" onPress={() => setPending({ action:'update-appointment', targetId:appointment.id, description:'marcar este agendamento como concluído', payload:{ status:'CONCLUIDO' } })} />
       <AppButton title="Excluir agendamento" variant="danger" onPress={() => setPending({ action:'delete-appointment', targetId:appointment.id, description:'excluir definitivamente este agendamento' })} />
     </View>)}</> : null}
@@ -59,4 +71,4 @@ export default function AdminUserDetailsScreen() {
   {pending ? <AdminConfirmationModal visible action={pending.action} targetId={pending.targetId} description={pending.description} onClose={() => setPending(null)} onConfirmed={execute} /> : null}
   </AppScreen>;
 }
-const styles = StyleSheet.create({content:{gap:Spacing.md,paddingBottom:Spacing.xl},back:{color:Colors.light.tint,fontSize:16,fontWeight:'700'},title:{color:Colors.light.text,fontSize:26,fontWeight:'800'},subtitle:{color:Colors.light.text,fontSize:20,fontWeight:'800',marginTop:Spacing.sm},card:{backgroundColor:Colors.light.surface,borderColor:Colors.light.border,borderRadius:12,borderWidth:1,gap:Spacing.sm,padding:Spacing.md},darkCard:{backgroundColor:Colors.dark.surface,borderColor:Colors.dark.border},info:{color:Colors.light.mutedText,lineHeight:20},appointmentTitle:{color:Colors.light.text,fontSize:16,fontWeight:'700'},darkText:{color:Colors.dark.text},darkMuted:{color:Colors.dark.mutedText}});
+const styles = StyleSheet.create({content:{gap:Spacing.md,paddingBottom:Spacing.xl},back:{color:Colors.light.tint,fontSize:16,fontWeight:'700'},title:{color:Colors.light.text,fontSize:26,fontWeight:'800'},subtitle:{color:Colors.light.text,fontSize:20,fontWeight:'800',marginTop:Spacing.sm},card:{backgroundColor:Colors.light.surface,borderColor:Colors.light.border,borderRadius:12,borderWidth:1,gap:Spacing.sm,padding:Spacing.md},darkCard:{backgroundColor:Colors.dark.surface,borderColor:Colors.dark.border},info:{color:Colors.light.mutedText,lineHeight:20},appointmentTitle:{color:Colors.light.text,fontSize:16,fontWeight:'700'},auditSummary:{backgroundColor:Colors.light.surface,borderColor:Colors.light.border,borderRadius:12,borderWidth:1,gap:Spacing.xs,padding:Spacing.md},auditNote:{backgroundColor:'#FFF4E5',borderRadius:8,gap:Spacing.xs,padding:Spacing.sm},darkAuditNote:{backgroundColor:'#3B2B16'},auditTitle:{color:Colors.light.text,fontWeight:'800'},darkText:{color:Colors.dark.text},darkMuted:{color:Colors.dark.mutedText}});

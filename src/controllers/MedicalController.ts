@@ -328,6 +328,31 @@ export class MedicalController {
     }
   };
 
+  public getParticipantProfile = async (req: Request, res: Response) => {
+    try {
+      const appointment = await this.medicalRepository.findAppointmentById(Number(req.params.id));
+      if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+      if (!this.canAccessAppointment(appointment, req.user)) {
+        return res.status(403).json({ message: 'Você não tem permissão para acessar este perfil.' });
+      }
+
+      const participantId = req.user?.nivel === 'paciente'
+        ? Number(appointment.doctorId)
+        : Number(appointment.patientId);
+      const profile = await this.medicalRepository.findSafeParticipantProfile(participantId);
+      if (!profile) return res.status(404).json({ message: 'Perfil não encontrado.' });
+
+      const appointments = await this.medicalRepository.findSharedAppointmentHistory(
+        Number(appointment.patientId),
+        Number(appointment.doctorId),
+      );
+      return res.json({ profile, appointments });
+    } catch (error) {
+      console.error('Erro ao buscar perfil do participante:', error);
+      return res.status(500).json({ message: 'Erro ao buscar perfil do participante.' });
+    }
+  };
+
   // 5. CRIAR NOVO AGENDAMENTO
   public createAppointment = async (req: Request, res: Response) => {
     try {
