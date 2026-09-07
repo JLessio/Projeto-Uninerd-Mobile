@@ -87,6 +87,34 @@ describe('interação da tela inicial', () => {
     expect(view.getAllByText('Ocupado')).toHaveLength(1);
   });
 
+  it('mostra totais e o histórico completo do médico', async () => {
+    mockUser = { id: 7, nome: 'Ana Médica', email: 'ana@teste.com', nivel: 'medico' };
+    mockedGetAppointments.mockResolvedValue({
+      data: [
+        { id: 50, patientId: 2, doctorId: 7, date: '2099-01-10 13:00:00', type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Futuro', status: 'AGENDADO' },
+        { id: 51, patientId: 3, doctorId: 7, date: '2025-01-10 14:00:00', type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Concluído', status: 'CONCLUIDO' },
+        { id: 52, patientId: 4, doctorId: 7, date: '2099-02-10 15:00:00', type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Cancelado', status: 'CANCELADO', cancellationReason: 'Peço desculpas, não poderei comparecer.', cancelledByRole: 'paciente' },
+        { id: 53, patientId: 5, doctorId: 7, date: '2025-02-10 16:00:00', type: 'exame', doctorName: 'Ana Médica', patientName: 'Paciente Expirado', status: 'AGENDADO' },
+      ],
+      total: 4,
+      page: 1,
+      last_page: 1,
+    });
+
+    const view = await render(<HomeScreen />);
+
+    expect(await view.findByText('Próximas consultas (1)')).toBeTruthy();
+    expect(view.getByText('Histórico de consultas (3)')).toBeTruthy();
+    expect(view.getByText('Paciente Futuro')).toBeTruthy();
+    expect(view.getByText('Paciente Concluído')).toBeTruthy();
+    expect(view.getByText('Paciente Cancelado')).toBeTruthy();
+    expect(view.getByText('Paciente Expirado')).toBeTruthy();
+    expect(view.getByText('Peço desculpas, não poderei comparecer.')).toBeTruthy();
+
+    fireEvent.press(view.getByLabelText('Abrir consulta de Paciente Cancelado'));
+    expect(mockPush).toHaveBeenCalledWith('/appointments/52/details');
+  });
+
   it('redireciona o administrador diretamente para a lista de pacientes', async () => {
     mockUser = { id: 1, nome: 'Administrador', email: 'admin@uninerd.com', nivel: 'admin' };
     render(<HomeScreen />);
