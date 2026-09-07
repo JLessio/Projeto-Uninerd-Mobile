@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 
 import { AppointmentList } from '@/components/appointments/AppointmentList';
@@ -13,6 +13,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { deleteAppointment, getAppointments } from '@/services/appointmentService';
 import { ApiError } from '@/services/api';
 import type { Appointment } from '@/types/appointment';
+import { confirmDestructiveAction } from '@/utils/confirmation';
 
 export default function AgendamentosScreen() {
   const { token, user, signOut } = useSession();
@@ -48,10 +49,13 @@ export default function AgendamentosScreen() {
   useFocusEffect(useCallback(() => { void loadAppointments(); }, [loadAppointments]));
 
   const confirmDelete = (appointment: Appointment) => {
-    Alert.alert('Cancelar agendamento', 'Tem certeza que deseja cancelar este agendamento?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim, cancelar', style: 'destructive', onPress: () => void handleDelete(appointment.id) },
-    ]);
+    confirmDestructiveAction({
+      title: 'Cancelar agendamento',
+      message: 'Tem certeza que deseja cancelar este agendamento?',
+      cancelLabel: 'Não',
+      confirmLabel: 'Sim, cancelar',
+      onConfirm: () => handleDelete(appointment.id),
+    });
   };
 
   const handleDelete = async (id: number) => {

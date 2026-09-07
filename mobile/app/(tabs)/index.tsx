@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +15,7 @@ import { ApiError } from '@/services/api';
 import { deleteAppointment, getAppointments } from '@/services/appointmentService';
 import type { Appointment } from '@/types/appointment';
 import { formatAppointmentDate } from '@/utils/appointment';
+import { confirmDestructiveAction } from '@/utils/confirmation';
 
 const workHours = Array.from({ length: 10 }, (_, index) => index + 8);
 
@@ -87,12 +88,12 @@ export default function HomeScreen() {
   };
 
   const confirmCancellation = (appointment: Appointment) => {
-    Alert.alert('Cancelar agendamento', 'Deseja cancelar esta consulta?', [
-      { text: 'Voltar', style: 'cancel' },
-      {
-        text: 'Cancelar consulta',
-        style: 'destructive',
-        onPress: async () => {
+    confirmDestructiveAction({
+      title: 'Cancelar agendamento',
+      message: 'Deseja cancelar esta consulta?',
+      cancelLabel: 'Voltar',
+      confirmLabel: 'Cancelar consulta',
+      onConfirm: async () => {
           if (!token) return;
           setDeletingId(appointment.id);
           setError(null);
@@ -104,9 +105,8 @@ export default function HomeScreen() {
           } finally {
             setDeletingId(null);
           }
-        },
       },
-    ]);
+    });
   };
 
   if (user?.nivel === 'admin') return <Redirect href="/(tabs)/admin-pacientes" />;
