@@ -16,6 +16,7 @@ export const Permissions = {
   APPOINTMENT_READ_SELF: 'appointment:read:self',
   APPOINTMENT_UPDATE_SELF: 'appointment:update:self',
   APPOINTMENT_CANCEL_SELF: 'appointment:cancel:self',
+  APPOINTMENT_COMPLETE_SELF: 'appointment:complete:self',
   ADMIN_USERS_READ: 'admin:users:read',
   ADMIN_USERS_MANAGE: 'admin:users:manage',
   ADMIN_APPOINTMENTS_MANAGE: 'admin:appointments:manage',
@@ -36,7 +37,7 @@ export const rolePermissions: Readonly<Record<Role, ReadonlySet<Permission>>> = 
   medico: new Set<Permission>([
     ...commonProfile, Permissions.PROFILE_DELETE_SELF, Permissions.DOCTOR_LIST, Permissions.DOCTOR_READ,
     Permissions.SCHEDULE_MANAGE_SELF, Permissions.APPOINTMENT_LIST_SELF, Permissions.APPOINTMENT_READ_SELF,
-    Permissions.APPOINTMENT_UPDATE_SELF, Permissions.APPOINTMENT_CANCEL_SELF,
+    Permissions.APPOINTMENT_UPDATE_SELF, Permissions.APPOINTMENT_CANCEL_SELF, Permissions.APPOINTMENT_COMPLETE_SELF,
   ]),
   admin: new Set<Permission>([
     ...commonProfile, Permissions.DOCTOR_LIST, Permissions.DOCTOR_READ, Permissions.DOCTOR_MANAGE,

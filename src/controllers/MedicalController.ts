@@ -411,6 +411,26 @@ export class MedicalController {
   };
 
   // 7. DELETAR AGENDAMENTO
+  public completeAppointment = async (req: Request, res: Response) => {
+    try {
+      const appointmentId = Number(req.params.id);
+      const appointment = await this.medicalRepository.findAppointmentById(appointmentId);
+      if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+      if (req.user?.nivel !== 'medico' || Number(appointment.doctorId) !== Number(req.user.id)) {
+        return res.status(403).json({ message: 'Somente o médico responsável pode concluir este atendimento.' });
+      }
+      if (String(appointment.status).toUpperCase() === 'CANCELADO') {
+        return res.status(409).json({ message: 'Um agendamento cancelado não pode ser concluído.' });
+      }
+
+      await this.medicalRepository.updateAppointmentStatus(appointmentId, 'CONCLUIDO');
+      return res.json({ message: 'Atendimento marcado como concluído.' });
+    } catch (error) {
+      console.error('Erro ao concluir agendamento:', error);
+      return res.status(500).json({ message: 'Erro ao concluir agendamento.' });
+    }
+  };
+
   public deleteAppointment = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

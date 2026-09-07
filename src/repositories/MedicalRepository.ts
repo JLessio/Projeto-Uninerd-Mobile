@@ -250,8 +250,13 @@ export class MedicalRepository {
 
   public async findAppointmentById(id: number): Promise<RowDataPacket | null> {
     const [rows] = await this.db.execute<RowDataPacket[]>(
-      `SELECT id, id_usuario as patientId, id_medico as doctorId, data_consulta as date, tipo as type, status 
-       FROM agendamentos WHERE id = ?`,
+      `SELECT a.id, a.id_usuario as patientId, a.id_medico as doctorId, a.data_consulta as date,
+              a.tipo as type, a.status, p.nome as patientName, p.email as patientEmail,
+              m.nome as doctorName
+       FROM agendamentos a
+       JOIN usuarios p ON p.id = a.id_usuario
+       JOIN usuarios m ON m.id = a.id_medico
+       WHERE a.id = ?`,
       [id]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -322,6 +327,14 @@ export class MedicalRepository {
     const [result] = await this.db.execute<ResultSetHeader>(
       'UPDATE agendamentos SET status = ? WHERE id = ?',
       ['CANCELADO', id]
+    );
+    return result.affectedRows;
+  }
+
+  public async updateAppointmentStatus(id: number, status: 'CONCLUIDO'): Promise<number> {
+    const [result] = await this.db.execute<ResultSetHeader>(
+      'UPDATE agendamentos SET status = ? WHERE id = ?',
+      [status, id],
     );
     return result.affectedRows;
   }

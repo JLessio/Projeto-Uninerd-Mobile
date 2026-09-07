@@ -20,6 +20,7 @@ function Navigation() {
       <Stack.Screen name="login" options={{ headerShown: false }} /><Stack.Screen name="register" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} /><Stack.Screen name="appointments/new" options={{ title: 'Novo agendamento' }} />
       <Stack.Screen name="appointments/[id]/edit" options={{ title: 'Editar agendamento' }} />
+      <Stack.Screen name="appointments/[id]/details" options={{ title: 'Detalhes da consulta' }} />
     </Stack>
     <ExpoStatusBar animated backgroundColor="#F0F4F8" style="dark" />
   </SafeAreaView>;

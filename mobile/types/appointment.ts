@@ -6,6 +6,7 @@ export interface Appointment {
   type: string;
   doctorName: string;
   patientName: string;
+  patientEmail?: string;
   status: string;
 }
 

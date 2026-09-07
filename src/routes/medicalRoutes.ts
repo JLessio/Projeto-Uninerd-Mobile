@@ -33,6 +33,7 @@ router.get('/appointments', authMiddleware, requirePermission(Permissions.APPOIN
 router.post('/appointments', authMiddleware, requirePermission(Permissions.APPOINTMENT_CREATE), controller.createAppointment);
 router.get('/appointments/:id', authMiddleware, requirePermission(Permissions.APPOINTMENT_READ_SELF), controller.getAppointmentById);
 router.put('/appointments/:id', authMiddleware, requirePermission(Permissions.APPOINTMENT_UPDATE_SELF), controller.updateAppointment);
+router.patch('/appointments/:id/status', authMiddleware, requirePermission(Permissions.APPOINTMENT_COMPLETE_SELF), controller.completeAppointment);
 router.delete('/appointments/:id', authMiddleware, requirePermission(Permissions.APPOINTMENT_CANCEL_SELF), controller.deleteAppointment);
 
 export default router;
