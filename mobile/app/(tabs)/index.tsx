@@ -198,6 +198,9 @@ export default function HomeScreen() {
                     <Text style={styles.cancelActionText}>{deletingId === appointment.id ? 'Cancelando...' : 'Cancelar'}</Text>
                   </Pressable>
                 </View> : null}
+                <Pressable accessibilityRole="button" accessibilityLabel={`Ver perfil de ${appointment.doctorName}`} onPress={() => router.push(`/appointments/${appointment.id}/participant-profile` as never)} style={styles.profileLink}>
+                  <Text style={styles.profileLinkText}>Ver perfil do médico</Text>
+                </Pressable>
               </View>
             ))}
           </ScrollView>
@@ -282,9 +285,9 @@ export default function HomeScreen() {
             <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>O histórico de atendimentos ainda está vazio.</Text></View>
           ) : doctorHistoryAppointments.map((appointment) => (
             <Pressable
-              accessibilityLabel={`Abrir consulta de ${appointment.patientName}`}
+              accessibilityLabel={`Ver perfil de ${appointment.patientName}`}
               key={appointment.id}
-              onPress={() => router.push(`/appointments/${appointment.id}/details` as never)}
+              onPress={() => router.push(`/appointments/${appointment.id}/participant-profile` as never)}
               style={[styles.doctorHistoryCard, isDark && styles.darkSurface]}
             >
               <View style={styles.appointmentTop}>
@@ -327,6 +330,8 @@ const styles = StyleSheet.create({
   appointmentStatusText: { color: Colors.light.tint, fontSize: 11, fontWeight: '700' },
   appointmentDetail: { alignItems: 'center', flexDirection: 'row', gap: Spacing.sm }, appointmentDetailText: { color: Colors.light.mutedText, fontSize: 14 },
   appointmentActions: { borderTopColor: Colors.light.border, borderTopWidth: 1, flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs, paddingTop: Spacing.sm }, editAction: { alignItems: 'center', flex: 1, padding: Spacing.sm }, cancelAction: { alignItems: 'center', flex: 1, padding: Spacing.sm }, editActionText: { color: Colors.light.tint, fontWeight: '700' }, cancelActionText: { color: Colors.light.danger, fontWeight: '700' }, disabledAction: { opacity: 0.5 },
+  profileLink: { alignItems: 'center', borderTopColor: Colors.light.border, borderTopWidth: 1, marginTop: Spacing.xs, paddingTop: Spacing.md },
+  profileLinkText: { color: Colors.light.tint, fontWeight: '700' },
   cancellationMessage: { backgroundColor: '#fff4e5', borderRadius: 8, gap: Spacing.xs, padding: Spacing.sm },
   darkCancellationMessage: { backgroundColor: '#3b2b16' }, cancellationTitle: { color: Colors.light.text, fontWeight: '800' },
   emptyCard: { alignItems: 'center', backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, padding: Spacing.xl },

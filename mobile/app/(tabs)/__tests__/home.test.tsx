@@ -75,6 +75,8 @@ describe('interação da tela inicial', () => {
     expect(view.getByText('Dra. Cancelada')).toBeTruthy();
     expect(view.getByText('Dr. Expirado')).toBeTruthy();
     expect(view.getByText('Peço desculpas pelo cancelamento.')).toBeTruthy();
+    fireEvent.press(view.getByLabelText('Ver perfil de Dra. Cancelada'));
+    expect(mockPush).toHaveBeenCalledWith('/appointments/42/participant-profile');
   });
 
   it('mostra horário ocupado e paciente no quadro do médico', async () => {
@@ -111,8 +113,8 @@ describe('interação da tela inicial', () => {
     expect(view.getByText('Paciente Expirado')).toBeTruthy();
     expect(view.getByText('Peço desculpas, não poderei comparecer.')).toBeTruthy();
 
-    fireEvent.press(view.getByLabelText('Abrir consulta de Paciente Cancelado'));
-    expect(mockPush).toHaveBeenCalledWith('/appointments/52/details');
+    fireEvent.press(view.getByLabelText('Ver perfil de Paciente Cancelado'));
+    expect(mockPush).toHaveBeenCalledWith('/appointments/52/participant-profile');
   });
 
   it('redireciona o administrador diretamente para a lista de pacientes', async () => {

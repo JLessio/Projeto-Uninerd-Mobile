@@ -31,6 +31,7 @@ router.delete("/specialties/:id", authMiddleware, requirePermission(Permissions.
  */
 router.get('/appointments', authMiddleware, requirePermission(Permissions.APPOINTMENT_LIST_SELF), controller.getAppointments);
 router.post('/appointments', authMiddleware, requirePermission(Permissions.APPOINTMENT_CREATE), controller.createAppointment);
+router.get('/appointments/:id/participant-profile', authMiddleware, requirePermission(Permissions.APPOINTMENT_READ_SELF), controller.getParticipantProfile);
 router.get('/appointments/:id', authMiddleware, requirePermission(Permissions.APPOINTMENT_READ_SELF), controller.getAppointmentById);
 router.put('/appointments/:id', authMiddleware, requirePermission(Permissions.APPOINTMENT_UPDATE_SELF), controller.updateAppointment);
 router.patch('/appointments/:id/status', authMiddleware, requirePermission(Permissions.APPOINTMENT_COMPLETE_SELF), controller.completeAppointment);

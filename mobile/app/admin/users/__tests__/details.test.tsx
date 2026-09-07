@@ -39,7 +39,10 @@ describe('interação do perfil administrativo', () => {
           id: 40,
           data_consulta: '2026-09-10T10:00:00',
           tipo: 'consulta',
-          status: 'AGENDADO',
+          status: 'CANCELADO',
+          motivo_cancelamento: 'Peço desculpas pelo cancelamento.',
+          cancelado_por_nome: 'Paciente Teste',
+          cancelado_por_perfil: 'paciente',
           paciente_id: 12,
           paciente_nome: 'Paciente Teste',
           paciente_email: 'paciente@teste.com',
@@ -58,7 +61,12 @@ describe('interação do perfil administrativo', () => {
     const view = await render(<AdminUserDetailsScreen />);
 
     expect(await view.findByDisplayValue('Paciente Teste')).toBeTruthy();
-    expect(view.getByText('Agendamentos (1)')).toBeTruthy();
+    expect(view.getByText('Histórico completo de consultas (1)')).toBeTruthy();
+    expect(view.getByText('Nota de cancelamento')).toBeTruthy();
+    expect(view.getByText('Feitos por este usuário: 1')).toBeTruthy();
+    expect(view.getByText('Feitos pela outra parte: 0')).toBeTruthy();
+    expect(view.getByText('Cancelado por: Paciente Teste (paciente)')).toBeTruthy();
+    expect(view.getByText('Peço desculpas pelo cancelamento.')).toBeTruthy();
     expect(mockedGetAdminUser).toHaveBeenCalledWith(12, 'token-admin');
 
     await fireEvent.press(view.getByRole('button', { name: 'Excluir usuário' }));

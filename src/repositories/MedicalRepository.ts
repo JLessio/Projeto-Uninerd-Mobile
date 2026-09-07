@@ -265,6 +265,37 @@ export class MedicalRepository {
     return rows.length > 0 ? rows[0] : null;
   }
 
+  public async findSafeParticipantProfile(id: number): Promise<RowDataPacket | null> {
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT u.id, u.nome as name, u.email, u.nivel as role, u.foto_url as photoUrl,
+              u.biografia as biography, u.crm_numero as crmNumber, u.crm_uf as crmState,
+              e.nome as specialty
+       FROM usuarios u
+       LEFT JOIN especialidades e ON e.id = u.id_especialidade
+       WHERE u.id = ? AND u.nivel IN ('paciente', 'medico')`,
+      [id],
+    );
+    return rows.length > 0 ? rows[0] : null;
+  }
+
+  public async findSharedAppointmentHistory(patientId: number, doctorId: number): Promise<RowDataPacket[]> {
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT a.id, a.id_usuario as patientId, a.id_medico as doctorId,
+              a.data_consulta as date, a.tipo as type, a.status,
+              p.nome as patientName, m.nome as doctorName,
+              a.motivo_cancelamento as cancellationReason,
+              CASE WHEN a.cancelado_por = a.id_usuario THEN 'paciente'
+                   WHEN a.cancelado_por = a.id_medico THEN 'medico' ELSE NULL END as cancelledByRole
+       FROM agendamentos a
+       JOIN usuarios p ON p.id = a.id_usuario
+       JOIN usuarios m ON m.id = a.id_medico
+       WHERE a.id_usuario = ? AND a.id_medico = ?
+       ORDER BY a.data_consulta DESC`,
+      [patientId, doctorId],
+    );
+    return rows;
+  }
+
   public async findExistingAppointment(doctorId: number, date: string, excludeId?: number): Promise<RowDataPacket | null> {
     let query = "SELECT id FROM agendamentos WHERE id_medico = ? AND data_consulta = ? AND status <> 'CANCELADO'";
     const params: (string | number)[] = [doctorId, date];
