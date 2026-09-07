@@ -434,6 +434,10 @@ export class MedicalController {
   public deleteAppointment = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : '';
+      if (reason.length < 10 || reason.length > 500) {
+        return res.status(400).json({ message: 'Escreva uma mensagem de desculpas entre 10 e 500 caracteres.' });
+      }
       const appointment = await this.medicalRepository.findAppointmentById(Number(id));
       if (!appointment) {
         return res.status(404).json({ message: 'Agendamento não encontrado.' });
@@ -443,7 +447,11 @@ export class MedicalController {
         return res.status(403).json({ message: 'Você não tem permissão para cancelar este agendamento.' });
       }
 
-      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id));
+      if (String(appointment.status).toUpperCase() === 'CANCELADO') {
+        return res.status(409).json({ message: 'Este agendamento já foi cancelado.' });
+      }
+
+      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id), req.user!.id, reason);
       if (affectedRows === 0) {
         return res.status(404).json({ message: 'Agendamento não encontrado.' });
       }

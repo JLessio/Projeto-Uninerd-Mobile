@@ -28,7 +28,7 @@ export function AppointmentList({ appointments, onEdit, onDelete, deletingId, re
           onDelete={onDelete}
           isDeleting={deletingId === item.id}
           isDoctor={isDoctor}
-          showActions={!isDoctor}
+          showActions
         />
       )}
       ListEmptyComponent={<EmptyState message={isDoctor ? 'Você ainda não possui horários agendados.' : 'Você ainda não possui agendamentos.'} />}

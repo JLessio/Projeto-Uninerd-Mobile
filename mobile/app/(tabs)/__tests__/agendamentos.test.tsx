@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import AgendamentosScreen from '@/app/(tabs)/agendamentos';
@@ -34,24 +33,22 @@ describe('interação da lista de agendamentos', () => {
   it('abre a edição da consulta selecionada', async () => {
     const view = await render(<AgendamentosScreen />);
     await view.findByText('Dra. Ana');
-    await fireEvent.press(view.getByRole('button', { name: 'Editar' }));
+    fireEvent.press(view.getByRole('button', { name: 'Editar' }));
     expect(mockPush).toHaveBeenCalledWith('/appointments/42/edit');
   });
 
-  it('confirma e cancela a consulta', async () => {
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
-      const confirmation = buttons?.find((button) => button.text === 'Sim, cancelar');
-      confirmation?.onPress?.();
-    });
+  it('envia a mensagem e cancela a consulta', async () => {
+    const apology = 'Peço desculpas, preciso cancelar esta consulta.';
     mockedGetAppointments
       .mockResolvedValueOnce({ data: [appointment], total: 1, page: 1, last_page: 1 })
-      .mockResolvedValue({ data: [], total: 0, page: 1, last_page: 0 });
+      .mockResolvedValue({ data: [{ ...appointment, status: 'CANCELADO', cancellationReason: apology, cancelledByRole: 'paciente' }], total: 1, page: 1, last_page: 1 });
     const view = await render(<AgendamentosScreen />);
     await view.findByText('Dra. Ana');
     await fireEvent.press(view.getByRole('button', { name: 'Cancelar' }));
+    await fireEvent.changeText(await view.findByLabelText('Mensagem de cancelamento'), apology);
+    await fireEvent.press(view.getByRole('button', { name: 'Enviar desculpa e cancelar' }));
 
-    await waitFor(() => expect(mockedDeleteAppointment).toHaveBeenCalledWith(42, 'token-paciente'));
-    await waitFor(() => expect(view.getByText('Você ainda não possui agendamentos.')).toBeTruthy());
-    alert.mockRestore();
+    await waitFor(() => expect(mockedDeleteAppointment).toHaveBeenCalledWith(42, 'token-paciente', apology));
+    await waitFor(() => expect(view.getByText(apology)).toBeTruthy());
   });
 });

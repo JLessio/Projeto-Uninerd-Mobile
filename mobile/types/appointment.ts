@@ -7,6 +7,8 @@ export interface Appointment {
   doctorName: string;
   patientName: string;
   patientEmail?: string;
+  cancellationReason?: string | null;
+  cancelledByRole?: 'paciente' | 'medico' | null;
   status: string;
 }
 
