@@ -117,4 +117,30 @@ describe('MedicalController — configuração da agenda médica', () => {
       message: 'Este horário acabou de ser ocupado. Atualize os horários disponíveis.',
     });
   });
+
+  it('permite ao médico responsável concluir o atendimento', async () => {
+    jest.spyOn(MedicalRepository.prototype, 'findAppointmentById').mockResolvedValue({ doctorId: 12, patientId: 7, status: 'AGENDADO' } as never);
+    const updateStatus = jest.spyOn(MedicalRepository.prototype, 'updateAppointmentStatus').mockResolvedValue(1);
+    const controller = new MedicalController({} as Pool);
+    const request = { user: { id: 12, nivel: 'medico' }, params: { id: '44' } } as unknown as Request;
+    const response = createResponse();
+
+    await controller.completeAppointment(request, response as unknown as Response);
+
+    expect(updateStatus).toHaveBeenCalledWith(44, 'CONCLUIDO');
+    expect(response.json).toHaveBeenCalledWith({ message: 'Atendimento marcado como concluído.' });
+  });
+
+  it('impede outro médico de concluir o atendimento', async () => {
+    jest.spyOn(MedicalRepository.prototype, 'findAppointmentById').mockResolvedValue({ doctorId: 99, patientId: 7, status: 'AGENDADO' } as never);
+    const updateStatus = jest.spyOn(MedicalRepository.prototype, 'updateAppointmentStatus').mockResolvedValue(1);
+    const controller = new MedicalController({} as Pool);
+    const request = { user: { id: 12, nivel: 'medico' }, params: { id: '44' } } as unknown as Request;
+    const response = createResponse();
+
+    await controller.completeAppointment(request, response as unknown as Response);
+
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(updateStatus).not.toHaveBeenCalled();
+  });
 });

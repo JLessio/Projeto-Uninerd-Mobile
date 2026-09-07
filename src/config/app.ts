@@ -26,7 +26,7 @@ const createApp = (): Application => {
       return callback(new Error('Origem não permitida pelo CORS.'));
     },
     allowedHeaders: ['Authorization', 'Content-Type', 'X-Admin-Confirmation'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     optionsSuccessStatus: 204,
   }));
   app.use(express.json());

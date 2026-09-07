@@ -219,7 +219,7 @@ export default function HomeScreen() {
           ) : upcomingAppointments.map((appointment) => (
             <Pressable
               key={appointment.id}
-              onPress={() => setSelectedDate(new Date(appointment.date.replace(' ', 'T')))}
+              onPress={() => router.push(`/appointments/${appointment.id}/details` as never)}
               style={[styles.upcomingCard, isDark && styles.darkSurface]}
             >
               <View style={[styles.upcomingDateIcon, isDark && styles.darkIconSurface]}><Ionicons name="calendar" size={21} color={iconColor} /></View>
