@@ -1,5 +1,7 @@
 import {
   formatAppointmentDate,
+  getAppointmentDisplayStatus,
+  isAppointmentActionable,
   toAppointmentPayload,
   toFormDate,
   validateAppointment,
@@ -45,5 +47,22 @@ describe('validação de agendamentos no mobile', () => {
 
   it('preserva o texto original quando a data não pode ser formatada', () => {
     expect(formatAppointmentDate('data-inválida')).toBe('data-inválida');
+  });
+
+  it('mostra como expirado um agendamento passado não concluído', () => {
+    const now = new Date('2026-09-07T15:00:00');
+    expect(getAppointmentDisplayStatus('AGENDADO', '2026-09-07 14:00:00', now)).toBe('EXPIRADO');
+    expect(isAppointmentActionable('AGENDADO', '2026-09-07 14:00:00', now)).toBe(false);
+  });
+
+  it('preserva como concluído um atendimento passado concluído', () => {
+    const now = new Date('2026-09-07T15:00:00');
+    expect(getAppointmentDisplayStatus('CONCLUIDO', '2026-09-07 14:00:00', now)).toBe('CONCLUÍDO');
+  });
+
+  it('mantém como agendado um atendimento futuro', () => {
+    const now = new Date('2026-09-07T13:00:00');
+    expect(getAppointmentDisplayStatus('AGENDADO', '2026-09-07 14:00:00', now)).toBe('AGENDADO');
+    expect(isAppointmentActionable('AGENDADO', '2026-09-07 14:00:00', now)).toBe(true);
   });
 });
