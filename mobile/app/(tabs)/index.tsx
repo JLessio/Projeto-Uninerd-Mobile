@@ -78,10 +78,21 @@ export default function HomeScreen() {
 
   const upcomingAppointments = useMemo(() => appointments
     .filter((appointment) => {
-      const parsed = new Date(appointment.date.replace(' ', 'T'));
-      return appointment.status.toUpperCase() !== 'CANCELADO' && parsed.getTime() >= Date.now();
+      const displayStatus = getAppointmentDisplayStatus(appointment.status, appointment.date);
+      return displayStatus === 'AGENDADO' || displayStatus === 'CONFIRMADO';
     })
     .sort((first, second) => new Date(first.date.replace(' ', 'T')).getTime() - new Date(second.date.replace(' ', 'T')).getTime()), [appointments]);
+
+  const doctorHistoryAppointments = useMemo(() => appointments
+    .filter((appointment) => {
+      const displayStatus = getAppointmentDisplayStatus(appointment.status, appointment.date);
+      return displayStatus !== 'AGENDADO' && displayStatus !== 'CONFIRMADO';
+    })
+    .sort((first, second) => new Date(second.date.replace(' ', 'T')).getTime() - new Date(first.date.replace(' ', 'T')).getTime()), [appointments]);
+
+  const doctorCompletedCount = appointments.filter((appointment) => appointment.status.toUpperCase() === 'CONCLUIDO').length;
+  const doctorCancelledCount = appointments.filter((appointment) => appointment.status.toUpperCase() === 'CANCELADO').length;
+  const doctorExpiredCount = appointments.filter((appointment) => getAppointmentDisplayStatus(appointment.status, appointment.date) === 'EXPIRADO').length;
 
   const changeDay = (amount: number) => {
     const next = new Date(selectedDate);
@@ -200,7 +211,7 @@ export default function HomeScreen() {
 
   return (
     <AppScreen>
-      <ScreenHeader title={`Olá, Dr(a). ${user?.nome?.split(' ')[0] ?? ''}`} description="Confira seus horários de atendimento." />
+      <ScreenHeader title={`Olá, Dr(a). ${user?.nome?.split(' ')[0] ?? ''}`} description="Confira sua agenda e o histórico de atendimentos." />
       <View style={[styles.dateNavigator, isDark && styles.darkSurface]}>
         <Pressable accessibilityLabel="Dia anterior" onPress={() => changeDay(-1)} style={styles.dateButton}>
           <Ionicons name="chevron-back" size={24} color={iconColor} />
@@ -243,7 +254,13 @@ export default function HomeScreen() {
             })}
           </View>
           <Text style={[styles.summary, isDark && styles.darkMuted]}>{dayAppointments.length} de {workHours.length} horários ocupados</Text>
-          <Text style={[styles.upcomingTitle, isDark && styles.darkText]}>Próximas consultas</Text>
+          <View style={[styles.historySummary, styles.doctorSummary]}>
+            <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{appointments.length}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Total marcado</Text></View>
+            <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{doctorCompletedCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Concluídas</Text></View>
+            <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{doctorCancelledCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Canceladas</Text></View>
+            <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{doctorExpiredCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Expiradas</Text></View>
+          </View>
+          <Text style={[styles.upcomingTitle, isDark && styles.darkText]}>Próximas consultas ({upcomingAppointments.length})</Text>
           {upcomingAppointments.length === 0 ? (
             <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>Nenhuma consulta futura agendada.</Text></View>
           ) : upcomingAppointments.map((appointment) => (
@@ -258,6 +275,32 @@ export default function HomeScreen() {
                 <Text style={[styles.upcomingDate, isDark && styles.darkMuted]}>{formatAppointmentDate(appointment.date)}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={mutedIconColor} />
+            </Pressable>
+          ))}
+          <Text style={[styles.upcomingTitle, styles.doctorHistoryTitle, isDark && styles.darkText]}>Histórico de consultas ({doctorHistoryAppointments.length})</Text>
+          {doctorHistoryAppointments.length === 0 ? (
+            <View style={[styles.emptyCard, isDark && styles.darkSurface]}><Text style={[styles.emptyText, isDark && styles.darkMuted]}>O histórico de atendimentos ainda está vazio.</Text></View>
+          ) : doctorHistoryAppointments.map((appointment) => (
+            <Pressable
+              accessibilityLabel={`Abrir consulta de ${appointment.patientName}`}
+              key={appointment.id}
+              onPress={() => router.push(`/appointments/${appointment.id}/details` as never)}
+              style={[styles.doctorHistoryCard, isDark && styles.darkSurface]}
+            >
+              <View style={styles.appointmentTop}>
+                <View style={[styles.upcomingDateIcon, isDark && styles.darkIconSurface]}><Ionicons name="person-outline" size={21} color={iconColor} /></View>
+                <View style={styles.upcomingInfo}>
+                  <Text style={[styles.upcomingPatient, isDark && styles.darkText]}>{appointment.patientName}</Text>
+                  <Text style={[styles.upcomingDate, isDark && styles.darkMuted]}>{formatAppointmentDate(appointment.date)}</Text>
+                  <Text style={[styles.upcomingDate, isDark && styles.darkMuted]}>{appointment.type === 'exame' ? 'Exame' : 'Consulta'}</Text>
+                </View>
+                <Text style={styles.doctorHistoryStatus}>{getAppointmentDisplayStatus(appointment.status, appointment.date)}</Text>
+                <Ionicons name="chevron-forward" size={20} color={mutedIconColor} />
+              </View>
+              {appointment.cancellationReason ? <View style={[styles.cancellationMessage, isDark && styles.darkCancellationMessage]}>
+                <Text style={[styles.cancellationTitle, isDark && styles.darkText]}>Mensagem de cancelamento do {appointment.cancelledByRole === 'medico' ? 'médico' : 'paciente'}</Text>
+                <Text style={[styles.appointmentDetailText, isDark && styles.darkMuted]}>{appointment.cancellationReason}</Text>
+              </View> : null}
             </Pressable>
           ))}
         </ScrollView>
@@ -303,10 +346,14 @@ const styles = StyleSheet.create({
   occupiedBadge: { backgroundColor: '#FEE2E2' }, freeBadge: { backgroundColor: '#DCFCE7' },
   badgeText: { fontSize: 12, fontWeight: '700' }, occupiedText: { color: '#B91C1C' }, freeText: { color: '#15803D' },
   summary: { color: Colors.light.mutedText, fontSize: 13, marginTop: Spacing.md, textAlign: 'center' },
+  doctorSummary: { marginTop: Spacing.xl },
   upcomingTitle: { color: Colors.light.text, fontSize: 19, fontWeight: '700', marginBottom: Spacing.sm, marginTop: Spacing.xl },
   upcomingCard: { alignItems: 'center', backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm, padding: Spacing.md },
   upcomingDateIcon: { alignItems: 'center', backgroundColor: '#EFF6FF', borderRadius: 10, height: 42, justifyContent: 'center', width: 42 },
   upcomingInfo: { flex: 1 }, upcomingPatient: { color: Colors.light.text, fontSize: 16, fontWeight: '700' }, upcomingDate: { color: Colors.light.mutedText, fontSize: 14, marginTop: 2 },
+  doctorHistoryTitle: { marginTop: Spacing.xl },
+  doctorHistoryCard: { backgroundColor: Colors.light.surface, borderColor: Colors.light.border, borderRadius: 12, borderWidth: 1, gap: Spacing.sm, marginBottom: Spacing.sm, padding: Spacing.md },
+  doctorHistoryStatus: { color: Colors.light.tint, fontSize: 11, fontWeight: '800' },
   darkSurface: { backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border },
   darkIconSurface: { backgroundColor: Colors.dark.elevatedSurface },
   darkRow: { borderBottomColor: Colors.dark.border },
