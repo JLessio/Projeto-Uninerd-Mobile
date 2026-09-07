@@ -43,6 +43,22 @@ describe('novo agendamento', () => {
     fireEvent.press(save);
 
     await waitFor(() => expect(createAppointment).toHaveBeenCalled());
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(tabs)'));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
+  });
+
+  it('impede o envio duplicado enquanto a consulta está sendo salva', async () => {
+    let finishRequest: (() => void) | undefined;
+    jest.mocked(createAppointment).mockImplementation(() => new Promise((resolve) => {
+      finishRequest = () => resolve({ message: 'Agendamento realizado.' });
+    }));
+    const view = await render(<NewAppointmentScreen />);
+    const save = await view.findByRole('button', { name: 'Salvar agendamento de teste' });
+
+    fireEvent.press(save);
+    fireEvent.press(save);
+
+    expect(createAppointment).toHaveBeenCalledTimes(1);
+    finishRequest?.();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
   });
 });

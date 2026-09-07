@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 
 import { AppointmentForm } from '@/components/appointments/AppointmentForm';
@@ -19,6 +19,7 @@ export default function NewAppointmentScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submissionInProgress = useRef(false);
 
   useEffect(() => {
     if (!token) { router.replace('/login'); return; }
@@ -32,16 +33,18 @@ export default function NewAppointmentScreen() {
   }, [token]);
 
   const handleSubmit = async (data: AppointmentPayload) => {
-    if (!token) return;
+    if (!token || submissionInProgress.current) return;
+    submissionInProgress.current = true;
     setIsSubmitting(true);
     setError(null);
     try {
       await createAppointment(data, token);
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (submitError) {
       if (submitError instanceof ApiError && submitError.status === 401) router.replace('/login');
       else setError(submitError instanceof Error ? submitError.message : 'Não foi possível realizar o agendamento.');
     } finally {
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
   };
