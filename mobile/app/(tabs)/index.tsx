@@ -73,8 +73,16 @@ export default function HomeScreen() {
 
   const dayAppointments = useMemo(() => {
     const selectedKey = toDateKey(selectedDate);
-    return appointments.filter((appointment) => appointment.status.toUpperCase() !== 'CANCELADO' && appointmentDateParts(appointment.date).date === selectedKey);
+    return appointments.filter((appointment) => (
+      getAppointmentDisplayStatus(appointment.status, appointment.date) !== 'CANCELADO'
+      && appointmentDateParts(appointment.date).date === selectedKey
+    ));
   }, [appointments, selectedDate]);
+
+  const occupiedDayAppointmentsCount = dayAppointments.filter((appointment) => {
+    const status = getAppointmentDisplayStatus(appointment.status, appointment.date);
+    return status === 'AGENDADO' || status === 'CONFIRMADO';
+  }).length;
 
   const upcomingAppointments = useMemo(() => appointments
     .filter((appointment) => {
@@ -242,13 +250,17 @@ export default function HomeScreen() {
             </View>
             {workHours.map((hour) => {
               const appointment = dayAppointments.find((item) => appointmentDateParts(item.date).hour === hour);
-              const occupied = Boolean(appointment);
+              const displayStatus = appointment ? getAppointmentDisplayStatus(appointment.status, appointment.date) : 'VAGO';
+              const occupied = displayStatus === 'AGENDADO' || displayStatus === 'CONFIRMADO';
+              const completed = displayStatus === 'CONCLUÍDO';
+              const expired = displayStatus === 'EXPIRADO';
+              const situation = occupied ? 'Ocupado' : completed ? 'Concluído' : expired ? 'Expirado' : 'Vago';
               return (
                 <View key={hour} style={[styles.row, isDark && styles.darkRow]}>
                   <Text style={[styles.cell, styles.timeCell, isDark && styles.darkText]}>{String(hour).padStart(2, '0')}:00</Text>
                   <View style={styles.statusCell}>
-                    <View style={[styles.badge, occupied ? styles.occupiedBadge : styles.freeBadge]}>
-                      <Text style={[styles.badgeText, occupied ? styles.occupiedText : styles.freeText]}>{occupied ? 'Ocupado' : 'Vago'}</Text>
+                    <View style={[styles.badge, occupied && styles.occupiedBadge, completed && styles.completedBadge, expired && styles.expiredBadge, !appointment && styles.freeBadge]}>
+                      <Text style={[styles.badgeText, occupied && styles.occupiedText, completed && styles.completedText, expired && styles.expiredText, !appointment && styles.freeText]}>{situation}</Text>
                     </View>
                   </View>
                   <Text numberOfLines={2} style={[styles.cell, styles.patientCell, isDark && styles.darkText]}>{appointment?.patientName ?? '—'}</Text>
@@ -256,7 +268,7 @@ export default function HomeScreen() {
               );
             })}
           </View>
-          <Text style={[styles.summary, isDark && styles.darkMuted]}>{dayAppointments.length} de {workHours.length} horários ocupados</Text>
+          <Text style={[styles.summary, isDark && styles.darkMuted]}>{occupiedDayAppointmentsCount} de {workHours.length} horários ocupados</Text>
           <View style={[styles.historySummary, styles.doctorSummary]}>
             <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{appointments.length}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Total marcado</Text></View>
             <View style={[styles.summaryCard, isDark && styles.darkSurface]}><Text style={[styles.summaryValue, isDark && styles.darkText]}>{doctorCompletedCount}</Text><Text style={[styles.summaryLabel, isDark && styles.darkMuted]}>Concluídas</Text></View>
@@ -348,8 +360,8 @@ const styles = StyleSheet.create({
   cell: { color: Colors.light.text, fontSize: 14, paddingHorizontal: Spacing.sm },
   timeCell: { flex: 0.8, fontWeight: '700' }, statusCell: { alignItems: 'flex-start', flex: 1.1, paddingHorizontal: Spacing.xs }, patientCell: { flex: 1.7 },
   badge: { borderRadius: 999, paddingHorizontal: Spacing.sm, paddingVertical: 5 },
-  occupiedBadge: { backgroundColor: '#FEE2E2' }, freeBadge: { backgroundColor: '#DCFCE7' },
-  badgeText: { fontSize: 12, fontWeight: '700' }, occupiedText: { color: '#B91C1C' }, freeText: { color: '#15803D' },
+  occupiedBadge: { backgroundColor: '#FEE2E2' }, completedBadge: { backgroundColor: '#DBEAFE' }, expiredBadge: { backgroundColor: '#E2E8F0' }, freeBadge: { backgroundColor: '#DCFCE7' },
+  badgeText: { fontSize: 12, fontWeight: '700' }, occupiedText: { color: '#B91C1C' }, completedText: { color: '#1D4ED8' }, expiredText: { color: '#475569' }, freeText: { color: '#15803D' },
   summary: { color: Colors.light.mutedText, fontSize: 13, marginTop: Spacing.md, textAlign: 'center' },
   doctorSummary: { marginTop: Spacing.xl },
   upcomingTitle: { color: Colors.light.text, fontSize: 19, fontWeight: '700', marginBottom: Spacing.sm, marginTop: Spacing.xl },
