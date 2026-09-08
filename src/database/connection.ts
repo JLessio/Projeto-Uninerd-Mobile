@@ -39,7 +39,7 @@ export const testConnection = async () => {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     const [appointmentColumns] = await connection.query<mysql.RowDataPacket[]>(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME = 'agendamentos' AND COLUMN_NAME IN ('horario_ativo', 'motivo_cancelamento', 'cancelado_por')`,
+       AND TABLE_NAME = 'agendamentos' AND COLUMN_NAME IN ('horario_ativo', 'motivo_cancelamento', 'cancelado_por', 'arquivo_cancelamento')`,
     );
     const existingAppointmentColumns = new Set(appointmentColumns.map((column) => String(column.COLUMN_NAME)));
     if (!existingAppointmentColumns.has('horario_ativo')) {
@@ -50,6 +50,7 @@ export const testConnection = async () => {
     }
     if (!existingAppointmentColumns.has('motivo_cancelamento')) await connection.execute('ALTER TABLE agendamentos ADD COLUMN motivo_cancelamento VARCHAR(500) NULL');
     if (!existingAppointmentColumns.has('cancelado_por')) await connection.execute('ALTER TABLE agendamentos ADD COLUMN cancelado_por INT NULL');
+    if (!existingAppointmentColumns.has('arquivo_cancelamento')) await connection.execute('ALTER TABLE agendamentos ADD COLUMN arquivo_cancelamento VARCHAR(512) NULL');
     const [appointmentIndexes] = await connection.query<mysql.RowDataPacket[]>(
       `SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE()
        AND TABLE_NAME = 'agendamentos'

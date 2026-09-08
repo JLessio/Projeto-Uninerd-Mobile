@@ -357,10 +357,10 @@ export class MedicalRepository {
     return result.affectedRows;
   }
 
-  public async deleteAppointment(id: number, cancelledBy: number, reason: string): Promise<number> {
+  public async deleteAppointment(id: number, cancelledBy: number, reason: string, messageFile: string): Promise<number> {
     const [result] = await this.db.execute<ResultSetHeader>(
-      "UPDATE agendamentos SET status = 'CANCELADO', cancelado_por = ?, motivo_cancelamento = ? WHERE id = ? AND status <> 'CANCELADO'",
-      [cancelledBy, reason, id]
+      "UPDATE agendamentos SET status = 'CANCELADO', cancelado_por = ?, motivo_cancelamento = ?, arquivo_cancelamento = ? WHERE id = ? AND status <> 'CANCELADO'",
+      [cancelledBy, reason, messageFile, id]
     );
     return result.affectedRows;
   }

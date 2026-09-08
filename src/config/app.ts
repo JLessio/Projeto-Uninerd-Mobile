@@ -31,7 +31,7 @@ const createApp = (): Application => {
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+  app.use('/uploads/profiles', express.static(path.resolve(process.cwd(), 'uploads', 'profiles')));
 
   app.get('/api', (_req, res) => res.json({
     ok: true,

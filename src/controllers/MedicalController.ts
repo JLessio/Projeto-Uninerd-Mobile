@@ -3,14 +3,17 @@ import bcrypt from 'bcryptjs';
 import { Pool } from 'mysql2/promise';
 import { MedicalRepository } from '../repositories/MedicalRepository';
 import { AppointmentService, BusinessRuleError } from '../services/AppointmentService';
+import { CancellationMessageService } from '../services/CancellationMessageService';
 
 export class MedicalController {
   private medicalRepository: MedicalRepository;
   private appointmentService: AppointmentService;
+  private cancellationMessages: Pick<CancellationMessageService, 'saveMessage' | 'removeMessage'>;
 
-  constructor(private db: Pool) {
+  constructor(private db: Pool, cancellationMessages: Pick<CancellationMessageService, 'saveMessage' | 'removeMessage'> = new CancellationMessageService()) {
     this.medicalRepository = new MedicalRepository(db);
     this.appointmentService = new AppointmentService(this.medicalRepository);
+    this.cancellationMessages = cancellationMessages;
   }
 
   // 1. BUSCAR MÉDICOS
@@ -457,6 +460,8 @@ export class MedicalController {
   };
 
   public deleteAppointment = async (req: Request, res: Response) => {
+    let storedMessagePath: string | null = null;
+    let cancellationSaved = false;
     try {
       const { id } = req.params;
       const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : '';
@@ -476,12 +481,27 @@ export class MedicalController {
         return res.status(409).json({ message: 'Este agendamento já foi cancelado.' });
       }
 
-      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id), req.user!.id, reason);
+      const cancelledByDoctor = req.user!.nivel === 'medico';
+      const senderName = String(cancelledByDoctor ? appointment.doctorName : appointment.patientName);
+      const recipientName = String(cancelledByDoctor ? appointment.patientName : appointment.doctorName);
+      storedMessagePath = await this.cancellationMessages.saveMessage({
+        appointmentId: Number(id),
+        appointmentDate: String(appointment.date),
+        senderName,
+        recipientName,
+        message: reason,
+      });
+
+      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id), req.user!.id, reason, storedMessagePath);
       if (affectedRows === 0) {
+        await this.cancellationMessages.removeMessage(storedMessagePath);
+        storedMessagePath = null;
         return res.status(404).json({ message: 'Agendamento não encontrado.' });
       }
+      cancellationSaved = true;
       return res.json({ message: 'Agendamento cancelado com sucesso.' });
     } catch (error) {
+      if (storedMessagePath && !cancellationSaved) await this.cancellationMessages.removeMessage(storedMessagePath).catch(() => undefined);
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Erro ao cancelar agendamento:', errorMessage);
       res.status(500).json({ message: 'Erro ao cancelar agendamento.' });
