@@ -28,10 +28,12 @@ jest.mock('@/services/appointmentService', () => ({ getAppointments: jest.fn(), 
 
 const mockedGetAppointments = jest.mocked(getAppointments);
 jest.setTimeout(15000);
-const todayAt = (hour: number) => {
+const dateAt = (hour: number, daysFromToday = 0) => {
   const date = new Date();
+  date.setDate(date.getDate() + daysFromToday);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(hour).padStart(2, '0')}:00:00`;
 };
+const todayAt = (hour: number) => dateAt(hour);
 
 describe('interação da tela inicial', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -81,12 +83,33 @@ describe('interação da tela inicial', () => {
 
   it('mostra horário ocupado e paciente no quadro do médico', async () => {
     mockUser = { id: 7, nome: 'Ana Médica', email: 'ana@teste.com', nivel: 'medico' };
-    mockedGetAppointments.mockResolvedValue({ data: [{ id: 31, patientId: 2, doctorId: 7, date: todayAt(13), type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Teste', status: 'AGENDADO' }], total: 1, page: 1, last_page: 1 });
+    mockedGetAppointments.mockResolvedValue({ data: [{ id: 31, patientId: 2, doctorId: 7, date: dateAt(13, 1), type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Teste', status: 'AGENDADO' }], total: 1, page: 1, last_page: 1 });
     const view = await render(<HomeScreen />);
 
+    fireEvent.press(view.getByLabelText('Próximo dia'));
     await waitFor(() => expect(view.getAllByText('Paciente Teste').length).toBeGreaterThan(0));
     expect(view.getByText('1 de 10 horários ocupados')).toBeTruthy();
     expect(view.getAllByText('Ocupado')).toHaveLength(1);
+  });
+
+  it('libera o horário cancelado e identifica separadamente o horário concluído', async () => {
+    mockUser = { id: 7, nome: 'Ana Médica', email: 'ana@teste.com', nivel: 'medico' };
+    mockedGetAppointments.mockResolvedValue({
+      data: [
+        { id: 32, patientId: 2, doctorId: 7, date: todayAt(16), type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Cancelado', status: ' CANCELADO ' },
+        { id: 33, patientId: 3, doctorId: 7, date: todayAt(15), type: 'consulta', doctorName: 'Ana Médica', patientName: 'Paciente Concluído', status: 'CONCLUIDO' },
+      ],
+      total: 2,
+      page: 1,
+      last_page: 1,
+    });
+
+    const view = await render(<HomeScreen />);
+
+    await waitFor(() => expect(view.getByText('0 de 10 horários ocupados')).toBeTruthy());
+    expect(view.queryByText('Ocupado')).toBeNull();
+    expect(view.getAllByText('Concluído').length).toBeGreaterThan(0);
+    expect(view.getAllByText('Vago')).toHaveLength(9);
   });
 
   it('mostra totais e o histórico completo do médico', async () => {
