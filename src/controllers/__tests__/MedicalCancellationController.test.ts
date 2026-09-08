@@ -22,9 +22,9 @@ describe('MedicalController - cancelamento com mensagem', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it.each([
-    [{ id: 7, nivel: 'paciente' }, 'Paciente Teste', 'Dra. Ana'],
-    [{ id: 12, nivel: 'medico' }, 'Dra. Ana', 'Paciente Teste'],
-  ])('permite que participante cancele, envie desculpas e gere o arquivo', async (user, senderName, recipientName) => {
+    [{ id: 7, nivel: 'paciente' }, 'Paciente Teste', 'Dra. Ana', 12],
+    [{ id: 12, nivel: 'medico' }, 'Dra. Ana', 'Paciente Teste', 7],
+  ])('permite que participante cancele, envie desculpas e gere o arquivo', async (user, senderName, recipientName, recipientId) => {
     jest.spyOn(MedicalRepository.prototype, 'findAppointmentById').mockResolvedValue({
       patientId: 7, doctorId: 12, patientName: 'Paciente Teste', doctorName: 'Dra. Ana',
       date: '2099-01-05 09:00:00', status: 'AGENDADO',
@@ -39,7 +39,7 @@ describe('MedicalController - cancelamento com mensagem', () => {
     await controller.deleteAppointment(request, response as unknown as Response);
 
     expect(messages.saveMessage).toHaveBeenCalledWith(expect.objectContaining({ appointmentId: 44, senderName, recipientName, message: reason }));
-    expect(cancel).toHaveBeenCalledWith(44, user.id, reason, 'uploads/messages/teste.txt');
+    expect(cancel).toHaveBeenCalledWith(44, user.id, recipientId, reason, 'uploads/messages/teste.txt');
     expect(response.json).toHaveBeenCalledWith({ message: 'Agendamento cancelado com sucesso.' });
   });
 
