@@ -79,6 +79,22 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS notificacoes_cancelamento (
+  id INT NOT NULL AUTO_INCREMENT,
+  agendamento_id INT NOT NULL,
+  destinatario_id INT NOT NULL,
+  remetente_id INT NOT NULL,
+  mensagem VARCHAR(500) NOT NULL,
+  lida_em DATETIME NULL,
+  criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_notificacao_cancelamento_destinatario (agendamento_id, destinatario_id),
+  KEY idx_notificacao_destinatario_lida (destinatario_id, lida_em),
+  CONSTRAINT fk_notificacao_agendamento FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notificacao_destinatario FOREIGN KEY (destinatario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notificacao_remetente FOREIGN KEY (remetente_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO especialidades (nome) VALUES
   ('Cardiologia'),
   ('Clínica Médica'),

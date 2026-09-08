@@ -17,6 +17,8 @@ export const Permissions = {
   APPOINTMENT_UPDATE_SELF: 'appointment:update:self',
   APPOINTMENT_CANCEL_SELF: 'appointment:cancel:self',
   APPOINTMENT_COMPLETE_SELF: 'appointment:complete:self',
+  CANCELLATION_NOTIFICATION_READ_SELF: 'cancellation-notification:read:self',
+  CANCELLATION_NOTIFICATION_UPDATE_SELF: 'cancellation-notification:update:self',
   ADMIN_USERS_READ: 'admin:users:read',
   ADMIN_USERS_MANAGE: 'admin:users:manage',
   ADMIN_APPOINTMENTS_MANAGE: 'admin:appointments:manage',
@@ -33,11 +35,13 @@ export const rolePermissions: Readonly<Record<Role, ReadonlySet<Permission>>> = 
     ...commonProfile, Permissions.PROFILE_DELETE_SELF, Permissions.DOCTOR_LIST, Permissions.DOCTOR_READ,
     Permissions.AVAILABILITY_READ, Permissions.APPOINTMENT_LIST_SELF, Permissions.APPOINTMENT_CREATE,
     Permissions.APPOINTMENT_READ_SELF, Permissions.APPOINTMENT_UPDATE_SELF, Permissions.APPOINTMENT_CANCEL_SELF,
+    Permissions.CANCELLATION_NOTIFICATION_READ_SELF, Permissions.CANCELLATION_NOTIFICATION_UPDATE_SELF,
   ]),
   medico: new Set<Permission>([
     ...commonProfile, Permissions.PROFILE_DELETE_SELF, Permissions.DOCTOR_LIST, Permissions.DOCTOR_READ,
     Permissions.SCHEDULE_MANAGE_SELF, Permissions.APPOINTMENT_LIST_SELF, Permissions.APPOINTMENT_READ_SELF,
     Permissions.APPOINTMENT_UPDATE_SELF, Permissions.APPOINTMENT_CANCEL_SELF, Permissions.APPOINTMENT_COMPLETE_SELF,
+    Permissions.CANCELLATION_NOTIFICATION_READ_SELF, Permissions.CANCELLATION_NOTIFICATION_UPDATE_SELF,
   ]),
   admin: new Set<Permission>([
     ...commonProfile, Permissions.DOCTOR_LIST, Permissions.DOCTOR_READ, Permissions.DOCTOR_MANAGE,

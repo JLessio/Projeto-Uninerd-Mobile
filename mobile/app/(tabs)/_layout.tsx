@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
+import { CancellationNotificationGate } from '@/components/notifications/CancellationNotificationGate';
 import { useSession } from '@/contexts/SessionContext';
 import { useAppTheme } from '@/contexts/ThemeContext';
 
@@ -14,7 +15,7 @@ export default function TabLayout() {
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/login" />;
 
-  return (
+  return <>
     <Tabs initialRouteName={isAdmin ? 'admin-pacientes' : 'index'}
       screenOptions={{
         headerShown: true,
@@ -63,5 +64,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }} />
     </Tabs>
-  );
+    <CancellationNotificationGate />
+  </>;
 }

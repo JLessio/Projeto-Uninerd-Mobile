@@ -357,10 +357,51 @@ export class MedicalRepository {
     return result.affectedRows;
   }
 
-  public async deleteAppointment(id: number, cancelledBy: number, reason: string, messageFile: string): Promise<number> {
+  public async deleteAppointment(id: number, cancelledBy: number, recipientId: number, reason: string, messageFile: string): Promise<number> {
+    const connection = await this.db.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.execute<ResultSetHeader>(
+        "UPDATE agendamentos SET status = 'CANCELADO', cancelado_por = ?, motivo_cancelamento = ?, arquivo_cancelamento = ? WHERE id = ? AND status <> 'CANCELADO'",
+        [cancelledBy, reason, messageFile, id],
+      );
+      if (result.affectedRows > 0) {
+        await connection.execute(
+          `INSERT INTO notificacoes_cancelamento (agendamento_id, destinatario_id, remetente_id, mensagem)
+           VALUES (?, ?, ?, ?)`,
+          [id, recipientId, cancelledBy, reason],
+        );
+      }
+      await connection.commit();
+      return result.affectedRows;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  public async findUnreadCancellationNotifications(userId: number): Promise<RowDataPacket[]> {
+    const [rows] = await this.db.execute<RowDataPacket[]>(
+      `SELECT n.id, n.agendamento_id as appointmentId, n.mensagem as reason,
+              n.criado_em as createdAt, a.data_consulta as appointmentDate, a.tipo as appointmentType,
+              sender.nome as senderName, recipient.nome as recipientName
+       FROM notificacoes_cancelamento n
+       JOIN agendamentos a ON a.id = n.agendamento_id
+       JOIN usuarios sender ON sender.id = n.remetente_id
+       JOIN usuarios recipient ON recipient.id = n.destinatario_id
+       WHERE n.destinatario_id = ? AND n.lida_em IS NULL
+       ORDER BY n.criado_em ASC`,
+      [userId],
+    );
+    return rows;
+  }
+
+  public async markCancellationNotificationRead(id: number, userId: number): Promise<number> {
     const [result] = await this.db.execute<ResultSetHeader>(
-      "UPDATE agendamentos SET status = 'CANCELADO', cancelado_por = ?, motivo_cancelamento = ?, arquivo_cancelamento = ? WHERE id = ? AND status <> 'CANCELADO'",
-      [cancelledBy, reason, messageFile, id]
+      'UPDATE notificacoes_cancelamento SET lida_em = CURRENT_TIMESTAMP WHERE id = ? AND destinatario_id = ? AND lida_em IS NULL',
+      [id, userId],
     );
     return result.affectedRows;
   }

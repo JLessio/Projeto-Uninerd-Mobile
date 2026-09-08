@@ -29,6 +29,8 @@ router.delete("/specialties/:id", authMiddleware, requirePermission(Permissions.
 /**
  * CRUD DE AGENDAMENTOS
  */
+router.get('/cancellation-notifications/unread', authMiddleware, requirePermission(Permissions.CANCELLATION_NOTIFICATION_READ_SELF), controller.getUnreadCancellationNotifications);
+router.patch('/cancellation-notifications/:id/read', authMiddleware, requirePermission(Permissions.CANCELLATION_NOTIFICATION_UPDATE_SELF), controller.markCancellationNotificationRead);
 router.get('/appointments', authMiddleware, requirePermission(Permissions.APPOINTMENT_LIST_SELF), controller.getAppointments);
 router.post('/appointments', authMiddleware, requirePermission(Permissions.APPOINTMENT_CREATE), controller.createAppointment);
 router.get('/appointments/:id/participant-profile', authMiddleware, requirePermission(Permissions.APPOINTMENT_READ_SELF), controller.getParticipantProfile);

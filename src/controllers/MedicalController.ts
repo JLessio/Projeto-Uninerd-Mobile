@@ -459,6 +459,31 @@ export class MedicalController {
     }
   };
 
+  public getUnreadCancellationNotifications = async (req: Request, res: Response) => {
+    try {
+      const notifications = await this.medicalRepository.findUnreadCancellationNotifications(req.user!.id);
+      return res.json({ data: notifications });
+    } catch (error) {
+      console.error('Erro ao buscar notificações de cancelamento:', error);
+      return res.status(500).json({ message: 'Erro ao buscar notificações de cancelamento.' });
+    }
+  };
+
+  public markCancellationNotificationRead = async (req: Request, res: Response) => {
+    try {
+      const notificationId = Number(req.params.id);
+      if (!Number.isInteger(notificationId) || notificationId <= 0) {
+        return res.status(400).json({ message: 'Notificação inválida.' });
+      }
+      const affectedRows = await this.medicalRepository.markCancellationNotificationRead(notificationId, req.user!.id);
+      if (affectedRows === 0) return res.status(404).json({ message: 'Notificação não encontrada.' });
+      return res.json({ message: 'Notificação marcada como lida.' });
+    } catch (error) {
+      console.error('Erro ao atualizar notificação de cancelamento:', error);
+      return res.status(500).json({ message: 'Erro ao atualizar notificação de cancelamento.' });
+    }
+  };
+
   public deleteAppointment = async (req: Request, res: Response) => {
     let storedMessagePath: string | null = null;
     let cancellationSaved = false;
@@ -484,6 +509,7 @@ export class MedicalController {
       const cancelledByDoctor = req.user!.nivel === 'medico';
       const senderName = String(cancelledByDoctor ? appointment.doctorName : appointment.patientName);
       const recipientName = String(cancelledByDoctor ? appointment.patientName : appointment.doctorName);
+      const recipientId = Number(cancelledByDoctor ? appointment.patientId : appointment.doctorId);
       storedMessagePath = await this.cancellationMessages.saveMessage({
         appointmentId: Number(id),
         appointmentDate: String(appointment.date),
@@ -492,7 +518,7 @@ export class MedicalController {
         message: reason,
       });
 
-      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id), req.user!.id, reason, storedMessagePath);
+      const affectedRows = await this.medicalRepository.deleteAppointment(Number(id), req.user!.id, recipientId, reason, storedMessagePath);
       if (affectedRows === 0) {
         await this.cancellationMessages.removeMessage(storedMessagePath);
         storedMessagePath = null;
