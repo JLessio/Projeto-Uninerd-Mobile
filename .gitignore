@@ -4,6 +4,7 @@ dist/
 *.log
 .DS_Store
 uploads/profiles/*
+uploads/messages/*
 mobile/.expo/
 mobile/.claude/
 mobile/.vscode/
