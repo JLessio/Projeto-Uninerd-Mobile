@@ -248,6 +248,7 @@ Na última validação, os testes automatizados da API e do mobile foram aprovad
 
 ## Documentação da rubrica
 
+- [Persona principal — Ivonete](docs/PERSONA-IVONETE.md)
 - [Especificação, contextualização e requisitos](docs/ESPECIFICACAO-DO-PROJETO.md)
 - [Regras de negócio](docs/regras-de-negocio.md)
 - [Checklist da rubrica](docs/RUBRICA-CHECKLIST.md)
