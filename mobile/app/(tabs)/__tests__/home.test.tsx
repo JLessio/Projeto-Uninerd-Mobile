@@ -92,7 +92,7 @@ describe('interação da tela inicial', () => {
     expect(view.getAllByText('Ocupado')).toHaveLength(1);
   });
 
-  it('libera o horário cancelado e identifica separadamente o horário concluído', async () => {
+  it('libera na grade os horários cancelado e concluído, preservando-os no histórico', async () => {
     mockUser = { id: 7, nome: 'Ana Médica', email: 'ana@teste.com', nivel: 'medico' };
     mockedGetAppointments.mockResolvedValue({
       data: [
@@ -108,8 +108,9 @@ describe('interação da tela inicial', () => {
 
     await waitFor(() => expect(view.getByText('0 de 10 horários ocupados')).toBeTruthy());
     expect(view.queryByText('Ocupado')).toBeNull();
-    expect(view.getAllByText('Concluído').length).toBeGreaterThan(0);
-    expect(view.getAllByText('Vago')).toHaveLength(9);
+    expect(view.getAllByText('Vago')).toHaveLength(10);
+    expect(view.getByText('CANCELADO')).toBeTruthy();
+    expect(view.getByText('CONCLUÍDO')).toBeTruthy();
   });
 
   it('mostra totais e o histórico completo do médico', async () => {
