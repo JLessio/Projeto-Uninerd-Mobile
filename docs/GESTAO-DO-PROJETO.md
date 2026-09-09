@@ -209,17 +209,20 @@ Bugs bloqueadores recebem prioridade máxima e podem interromper a ordem planeja
 
 ## 11. Conexão com as personas/clientes
 
+A persona principal do projeto é **Ivonete**, uma persona fictícia composta a partir de dificuldades, comportamentos e necessidades observados em um conjunto de pessoas reais. Ela representa uma paciente de 71 anos com experiência digital básica e dificuldade para encontrar médicos em informações espalhadas, sem reproduzir os dados de uma pessoa específica. Para Ivonete, o Uninerd funciona como uma evolução do antigo caderno telefônico: reúne profissionais, informações confiáveis e horários disponíveis em um único ambiente. A descrição completa, a origem da persona, sua jornada e os critérios de aceite estão em [PERSONA-IVONETE.md](PERSONA-IVONETE.md).
+
 | Necessidade da persona | Resposta implementada | Evidência esperada |
 | --- | --- | --- |
-| Paciente quer agendar sem telefonar | Fluxo de novo agendamento no mobile/web | Demonstração da reserva completa |
-| Paciente quer confiar no profissional | Perfil com CRM, especialidade, foto e biografia | Tela do perfil profissional |
-| Paciente não quer escolher horário inválido | Apenas dias futuros e horários vagos | Tela de disponibilidade |
-| Paciente precisa administrar a consulta | Visualização, edição e cancelamento próprios | Tela inicial e edição |
+| Ivonete quer encontrar médicos sem consultar vários contatos | Profissionais reunidos no fluxo de novo agendamento | Tela de seleção do médico |
+| Ivonete quer confiar no profissional | Perfil com CRM, especialidade, foto e biografia | Tela do perfil profissional |
+| Ivonete não quer escolher horário inválido | Apenas dias futuros e horários vagos | Tela de disponibilidade |
+| Ivonete precisa recordar seus compromissos | Agendamentos apresentados diretamente no início | Tela inicial da paciente |
+| Ivonete precisa administrar a consulta | Visualização, edição, cancelamento e histórico | Tela inicial, edição e histórico |
 | Médico quer controlar quando atende | Configuração persistente de horários | Tela “Meus horários” |
 | Médico quer organizar o dia | Quadro com horários livres e ocupados | Agenda diária |
 | Ambos precisam proteger dados | JWT, autorização, sessão segura e perfil público restrito | Testes e respostas 401/403 |
 
-A proposta conecta-se diretamente às duas personas principais porque reduz trabalho manual, oferece transparência de disponibilidade e protege informações que não são necessárias ao atendimento.
+A proposta conecta-se diretamente à persona principal porque substitui informações fragmentadas por uma jornada centralizada, previsível e legível. Ao mesmo tempo, reduz o trabalho manual do médico, oferece transparência de disponibilidade e protege informações que não são necessárias ao atendimento.
 
 ## 12. Evidências para a apresentação
 
